@@ -112,3 +112,16 @@ export async function fetchChapters(): Promise<Chapter[]> {
     const data: Chapter[] = await res.json();
     return data.map(mapChapterToFrontend);
 }
+
+export async function verifyAuthToken(idToken: string): Promise<boolean> {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/auth/verify`, {
+            headers: {
+                'Authorization': `Bearer ${idToken}`
+            }
+        });
+        return res.ok;
+    } catch {
+        return false;
+    }
+}

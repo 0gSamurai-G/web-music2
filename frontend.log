@@ -13,15 +13,15 @@ This information is used to shape Next.js' roadmap and prioritize features.
 You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
 https://nextjs.org/telemetry
 
- ✓ Ready in 1916ms
+ ✓ Ready in 1974ms
  ○ Compiling / ...
- ✓ Compiled / in 14.4s (2077 modules)
- GET / 200 in 16069ms
+ ✓ Compiled / in 15.1s (2077 modules)
+ HEAD / 200 in 16991ms
+ GET / 200 in 236ms
  ○ Compiling /albums ...
- ✓ Compiled /albums in 1569ms (2068 modules)
+ ✓ Compiled /albums in 2.2s (2068 modules)
  ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
- GET / 200 in 15ms
- GET /albums 200 in 2282ms
+ GET /albums 200 in 3048ms
  ○ Compiling /album-detail ...
- ✓ Compiled /album-detail in 787ms (2061 modules)
- GET /album-detail?id=void-frequencies 200 in 1188ms
+ ✓ Compiled /album-detail in 978ms (2061 modules)
+ GET /album-detail?id=void-frequencies 200 in 1424ms

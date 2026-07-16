@@ -19,6 +19,10 @@ from auth_utils import verify_firebase_token
 
 router = APIRouter()
 
+@router.get("/auth/verify")
+async def verify_auth(_email: str = Depends(verify_firebase_token)):
+    return {"status": "success", "email": _email}
+
 # Local Media Storage Base
 MEDIA_DIR = Path(__file__).resolve().parent / "media"
 MEDIA_DIR.mkdir(parents=True, exist_ok=True)

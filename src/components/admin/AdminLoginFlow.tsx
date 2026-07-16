@@ -5,6 +5,8 @@ import PatternLock from 'react-pattern-lock';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '@/lib/firebase';
 import StarfieldCanvas from '@/app/components/StarfieldCanvas'; // Reusing existing starfield
+import { useRouter } from 'next/navigation';
+import { verifyAuthToken } from '@/lib/api';
 
 interface AdminLoginFlowProps {
     onClose: () => void;
@@ -17,6 +19,7 @@ export default function AdminLoginFlow({ onClose }: AdminLoginFlowProps) {
     const [error, setError] = useState(false);
     const [stage, setStage] = useState<'pattern' | 'google' | 'edit'>('pattern');
     const [authError, setAuthError] = useState('');
+    const router = useRouter();
 
     const handleFinish = () => {
         if (!path || path.length === 0) return;
@@ -39,7 +42,15 @@ export default function AdminLoginFlow({ onClose }: AdminLoginFlowProps) {
         try {
             const result = await signInWithPopup(auth, googleProvider);
             if (result.user.email === 'srdeshpande1122@gmail.com') {
-                setStage('edit');
+                const token = await result.user.getIdToken();
+                const isVerified = await verifyAuthToken(token);
+                if (isVerified) {
+                    onClose();
+                    router.push('/admin');
+                } else {
+                    setAuthError('Server-side verification failed. Access Denied.');
+                    await auth.signOut();
+                }
             } else {
                 setAuthError('Unauthorized user.');
                 await auth.signOut(); // Sign out unauthorized users

@@ -1,20 +1,22 @@
-INFO:     Started server process [128910]
+INFO:     Started server process [123523]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-2026-07-16 08:12:02,478 INFO sqlalchemy.engine.Engine BEGIN (implicit)
-2026-07-16 08:12:02,483 INFO sqlalchemy.engine.Engine SELECT albums.id, albums.title, albums.year, albums.cover, albums.description, albums.genre_tags, albums.position
-FROM albums ORDER BY albums.position
-2026-07-16 08:12:02,483 INFO sqlalchemy.engine.Engine [generated in 0.00061s] ()
-2026-07-16 08:12:02,484 INFO sqlalchemy.engine.Engine BEGIN (implicit)
-2026-07-16 08:12:02,487 INFO sqlalchemy.engine.Engine SELECT scrollytelling_chapters.id, scrollytelling_chapters.title, scrollytelling_chapters.description, scrollytelling_chapters.chapter_label, scrollytelling_chapters.image, scrollytelling_chapters.eyebrow, scrollytelling_chapters.stat_number, scrollytelling_chapters.stat_label, scrollytelling_chapters.position
+INFO:     127.0.0.1:50060 - "HEAD / HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:53200 - "GET / HTTP/1.1" 200 OK
+2026-07-16 20:28:47,953 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-07-16 20:28:47,961 INFO sqlalchemy.engine.Engine SELECT scrollytelling_chapters.id, scrollytelling_chapters.title, scrollytelling_chapters.description, scrollytelling_chapters.chapter_label, scrollytelling_chapters.image, scrollytelling_chapters.eyebrow, scrollytelling_chapters.stat_number, scrollytelling_chapters.stat_label, scrollytelling_chapters.position
 FROM scrollytelling_chapters ORDER BY scrollytelling_chapters.position
-2026-07-16 08:12:02,487 INFO sqlalchemy.engine.Engine [generated in 0.00035s] ()
-2026-07-16 08:12:02,492 INFO sqlalchemy.engine.Engine SELECT songs.album_id AS songs_album_id, songs.id AS songs_id, songs.title AS songs_title, songs.duration AS songs_duration, songs.seconds AS songs_seconds, songs.lyrics AS songs_lyrics, songs.audio_path AS songs_audio_path, songs.track_number AS songs_track_number
+2026-07-16 20:28:47,962 INFO sqlalchemy.engine.Engine [generated in 0.00111s] ()
+2026-07-16 20:28:47,964 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-07-16 20:28:47,966 INFO sqlalchemy.engine.Engine SELECT albums.id, albums.title, albums.year, albums.cover, albums.description, albums.genre_tags, albums.position
+FROM albums ORDER BY albums.position
+2026-07-16 20:28:47,966 INFO sqlalchemy.engine.Engine [generated in 0.00021s] ()
+INFO:     127.0.0.1:33816 - "GET /api/chapters HTTP/1.1" 200 OK
+2026-07-16 20:28:47,971 INFO sqlalchemy.engine.Engine COMMIT
+2026-07-16 20:28:47,981 INFO sqlalchemy.engine.Engine SELECT songs.album_id AS songs_album_id, songs.id AS songs_id, songs.title AS songs_title, songs.duration AS songs_duration, songs.seconds AS songs_seconds, songs.lyrics AS songs_lyrics, songs.audio_path AS songs_audio_path, songs.track_number AS songs_track_number
 FROM songs
 WHERE songs.album_id IN (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ORDER BY songs.track_number
-2026-07-16 08:12:02,493 INFO sqlalchemy.engine.Engine [generated in 0.00026s] ('void-frequencies', 'nebula-drift', 'surface-tension', 'starfall', 'echo-protocol', 'abyssal-chorus', 'neon-vanguard', 'quantum-state', 'horizon-event', 'origin-story')
-INFO:     127.0.0.1:58120 - "GET /api/chapters HTTP/1.1" 200 OK
-2026-07-16 08:12:02,496 INFO sqlalchemy.engine.Engine COMMIT
-INFO:     127.0.0.1:58108 - "GET /api/albums HTTP/1.1" 200 OK
-2026-07-16 08:12:02,505 INFO sqlalchemy.engine.Engine COMMIT
+2026-07-16 20:28:47,982 INFO sqlalchemy.engine.Engine [generated in 0.00130s] ('void-frequencies', 'nebula-drift', 'surface-tension', 'starfall', 'echo-protocol', 'abyssal-chorus', 'neon-vanguard', 'quantum-state', 'horizon-event', 'origin-story')
+INFO:     127.0.0.1:33802 - "GET /api/albums HTTP/1.1" 200 OK
+2026-07-16 20:28:48,011 INFO sqlalchemy.engine.Engine COMMIT

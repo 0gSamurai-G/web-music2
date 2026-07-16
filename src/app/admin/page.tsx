@@ -2,12 +2,12 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { onAuthStateChanged, signOut, signInWithPopup } from 'firebase/auth';
+import { auth, googleProvider } from '@/lib/firebase';
 import InteractiveStarfield from '../components/InteractiveStarfield';
 import CustomCursor from '../components/CustomCursor';
 import AppLogo from '@/components/ui/AppLogo';
-import { fetchAlbums, fetchSettings, fetchChapters, API_BASE_URL, FrontendAlbum, Song, SiteSetting, Chapter } from '@/lib/api';
+import { fetchAlbums, fetchSettings, fetchChapters, API_BASE_URL, FrontendAlbum, Song, SiteSetting, Chapter, verifyAuthToken } from '@/lib/api';
 
 export default function AdminPage() {
     const [user, setUser] = useState<any>(null);
@@ -71,15 +71,31 @@ export default function AdminPage() {
     const [chapterFile, setChapterFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string>('');
 
+    const [loginError, setLoginError] = useState('');
+
     // Auth monitor
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (usr) => {
+        const unsubscribe = onAuthStateChanged(auth, async (usr) => {
             if (usr) {
                 if (usr.email === 'srdeshpande1122@gmail.com') {
-                    setUser(usr);
+                    try {
+                        const token = await usr.getIdToken();
+                        const isVerified = await verifyAuthToken(token);
+                        if (isVerified) {
+                            setUser(usr);
+                        } else {
+                            setLoginError('Server-side verification failed.');
+                            await signOut(auth);
+                            setUser(null);
+                        }
+                    } catch (err) {
+                        setLoginError('Authentication check failed.');
+                        await signOut(auth);
+                        setUser(null);
+                    }
                 } else {
-                    // Sign out invalid user
-                    signOut(auth);
+                    setLoginError('Unauthorized email address.');
+                    await signOut(auth);
                     setUser(null);
                 }
             } else {
@@ -89,6 +105,29 @@ export default function AdminPage() {
         });
         return () => unsubscribe();
     }, []);
+
+    const handleGoogleLogin = async () => {
+        setLoginError('');
+        try {
+            const result = await signInWithPopup(auth, googleProvider);
+            if (result.user.email === 'srdeshpande1122@gmail.com') {
+                const token = await result.user.getIdToken();
+                const isVerified = await verifyAuthToken(token);
+                if (isVerified) {
+                    setUser(result.user);
+                } else {
+                    setLoginError('Server-side verification failed.');
+                    await auth.signOut();
+                }
+            } else {
+                setLoginError('Unauthorized email address.');
+                await auth.signOut();
+            }
+        } catch (err: any) {
+            console.error("Sign-in error", err);
+            setLoginError(err.message || 'Failed to sign in.');
+        }
+    };
 
     // Fetch data if authenticated
     useEffect(() => {
@@ -564,16 +603,33 @@ export default function AdminPage() {
             <div className="relative min-h-screen bg-void-black flex flex-col items-center justify-center text-star-white px-4">
                 <InteractiveStarfield opacity={0.6} />
                 <CustomCursor />
-                <div className="relative z-10 p-8 glass-card max-w-sm w-full text-center">
-                    <h2 className="font-display font-bold text-2xl mb-4 tracking-wide text-red-400">Access Denied</h2>
+                <div className="relative z-10 p-8 glass-card max-w-md w-full text-center">
+                    <div className="flex justify-center mb-4">
+                        <AppLogo size={48} />
+                    </div>
+                    <h2 className="font-display font-bold text-2xl mb-2 tracking-wide text-ice-blue">Admin Access</h2>
                     <p className="text-sm opacity-60 mb-6 font-sans">
-                        You must be signed in as the authorized administrator to access this interface.
+                        Sign in with the authorized Google account to manage the site content.
                     </p>
+
+                    <button
+                        onClick={handleGoogleLogin}
+                        className="glass-btn px-6 py-3 font-display text-sm tracking-widest w-full flex items-center justify-center gap-3 transition-colors hover:bg-[rgba(255,255,255,0.1)] mb-4"
+                    >
+                        Sign in with Google
+                    </button>
+
+                    {loginError && (
+                        <div className="mb-4 text-red-400 text-sm font-sans px-4 py-2 bg-[rgba(255,0,0,0.1)] border border-[rgba(255,0,0,0.2)] rounded-md">
+                            ⚠️ {loginError}
+                        </div>
+                    )}
+
                     <button
                         onClick={() => router.push('/')}
-                        className="glass-btn px-6 py-2.5 font-display text-xs tracking-widest uppercase transition-colors"
+                        className="text-xs uppercase tracking-widest text-star-white opacity-50 hover:opacity-100 transition-opacity"
                     >
-                        Back to Home
+                        Back to Public Site
                     </button>
                 </div>
             </div>
