@@ -2,12 +2,14 @@
 
 import React, { useEffect, useState } from 'react';
 import AppImage from '@/components/ui/AppImage';
+import { Chapter } from '@/lib/api';
 
 interface ChapterFreeFallProps {
     isActive: boolean;
+    chapter?: Chapter;
 }
 
-export default function ChapterFreeFall({ isActive }: ChapterFreeFallProps) {
+export default function ChapterFreeFall({ isActive, chapter }: ChapterFreeFallProps) {
     const [entered, setEntered] = useState(false);
     const [textVisible, setTextVisible] = useState(false);
     const [subtextVisible, setSubtextVisible] = useState(false);
@@ -31,6 +33,11 @@ export default function ChapterFreeFall({ isActive }: ChapterFreeFallProps) {
         };
     }, [isActive]);
 
+    const title = chapter ? chapter.title : "FREE FALL";
+    const description = chapter ? chapter.description : "The moment gravity becomes freedom.";
+    const label = chapter ? chapter.chapter_label : "Chapter 01";
+    const image = chapter ? chapter.image : "/assets/images/Artboard_1-1781358319348.png";
+
     return (
         <div className="relative w-full h-full flex items-center justify-center z-10">
             {/* Character — left-center */}
@@ -50,7 +57,7 @@ export default function ChapterFreeFall({ isActive }: ChapterFreeFallProps) {
             >
                 <div className={entered ? 'char-freefall' : ''}>
                     <AppImage
-                        src="/assets/images/Artboard_1-1781358319348.png"
+                        src={image}
                         alt="Anime character in free fall pose, arms spread wide against a dark void"
                         height={600}
                         width={400}
@@ -73,7 +80,7 @@ export default function ChapterFreeFall({ isActive }: ChapterFreeFallProps) {
             >
                 <h2
                     className="chapter-headline"
-                    data-text="FREE FALL"
+                    data-text={title}
                     style={{
                         fontSize: 'clamp(3rem, 10vw, 6.5rem)',
                         opacity: textVisible ? 1 : 0,
@@ -81,7 +88,7 @@ export default function ChapterFreeFall({ isActive }: ChapterFreeFallProps) {
                         transition: 'opacity 0.8s ease, transform 0.8s cubic-bezier(0.16,1,0.3,1)',
                     }}
                 >
-                    FREE FALL
+                    {title}
                 </h2>
 
                 <p
@@ -96,7 +103,7 @@ export default function ChapterFreeFall({ isActive }: ChapterFreeFallProps) {
                         marginLeft: 'auto',
                     }}
                 >
-                    The moment gravity becomes freedom.
+                    {description}
                 </p>
 
                 <div
@@ -110,7 +117,7 @@ export default function ChapterFreeFall({ isActive }: ChapterFreeFallProps) {
                         className="font-display text-xs uppercase tracking-widest"
                         style={{ color: 'var(--ice-blue)', opacity: 0.7 }}
                     >
-                        Chapter 01
+                        {label}
                     </span>
                 </div>
             </div>
