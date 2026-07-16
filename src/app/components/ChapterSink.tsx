@@ -2,9 +2,11 @@
 
 import React, { useEffect, useState } from 'react';
 import AppImage from '@/components/ui/AppImage';
+import { Chapter } from '@/lib/api';
 
 interface ChapterSinkProps {
     isActive: boolean;
+    chapter?: Chapter;
 }
 
 const BUBBLES = [
@@ -15,7 +17,7 @@ const BUBBLES = [
     { size: 9, left: '58%', bottom: '20%', duration: 8, delay: 3 },
 ];
 
-export default function ChapterSink({ isActive }: ChapterSinkProps) {
+export default function ChapterSink({ isActive, chapter }: ChapterSinkProps) {
     const [entered, setEntered] = useState(false);
     const [textVisible, setTextVisible] = useState(false);
     const [subtextVisible, setSubtextVisible] = useState(false);
@@ -39,6 +41,11 @@ export default function ChapterSink({ isActive }: ChapterSinkProps) {
         };
     }, [isActive]);
 
+    const title = chapter ? chapter.title : "DESCENT";
+    const description = chapter ? chapter.description : "Sinking deeper into the blue.";
+    const label = chapter ? chapter.chapter_label : "Chapter 02";
+    const image = chapter ? chapter.image : "/assets/images/Artboard_2-1781358319225.png";
+
     return (
         <div className="relative w-full h-full flex items-center justify-center z-10">
             {/* Character — center */}
@@ -60,7 +67,7 @@ export default function ChapterSink({ isActive }: ChapterSinkProps) {
             >
                 <div className={entered ? 'char-sink' : ''}>
                     <AppImage
-                        src="/assets/images/Artboard_2-1781358319225.png"
+                        src={image}
                         alt="Anime character sinking, hair splayed outward, eyes closed in dark void"
                         height={560}
                         width={380}
@@ -98,7 +105,7 @@ export default function ChapterSink({ isActive }: ChapterSinkProps) {
             >
                 <h2
                     className="chapter-headline"
-                    data-text="DESCENT"
+                    data-text={title}
                     style={{
                         fontSize: 'clamp(3rem, 10vw, 6.5rem)',
                         opacity: textVisible ? 1 : 0,
@@ -106,7 +113,7 @@ export default function ChapterSink({ isActive }: ChapterSinkProps) {
                         transition: 'opacity 0.8s ease, transform 0.8s cubic-bezier(0.16,1,0.3,1)',
                     }}
                 >
-                    DESCENT
+                    {title}
                 </h2>
 
                 <p
@@ -120,7 +127,7 @@ export default function ChapterSink({ isActive }: ChapterSinkProps) {
                         maxWidth: '300px',
                     }}
                 >
-                    Sinking deeper into the blue.
+                    {description}
                 </p>
 
                 <div
@@ -134,7 +141,7 @@ export default function ChapterSink({ isActive }: ChapterSinkProps) {
                         className="font-display text-xs uppercase tracking-widest"
                         style={{ color: 'var(--ice-blue)', opacity: 0.7 }}
                     >
-                        Chapter 02
+                        {label}
                     </span>
                 </div>
             </div>

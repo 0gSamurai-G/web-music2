@@ -2,9 +2,11 @@
 
 import React, { useEffect, useState } from 'react';
 import AppImage from '@/components/ui/AppImage';
+import { Chapter } from '@/lib/api';
 
 interface ChapterRiseProps {
     isActive: boolean;
+    chapter?: Chapter;
 }
 
 const BUBBLES = [
@@ -13,7 +15,7 @@ const BUBBLES = [
     { size: 9, left: '42%', bottom: '38%', duration: 8, delay: 3 },
 ];
 
-export default function ChapterRise({ isActive }: ChapterRiseProps) {
+export default function ChapterRise({ isActive, chapter }: ChapterRiseProps) {
     const [entered, setEntered] = useState(false);
     const [textVisible, setTextVisible] = useState(false);
     const [subtextVisible, setSubtextVisible] = useState(false);
@@ -37,6 +39,11 @@ export default function ChapterRise({ isActive }: ChapterRiseProps) {
         };
     }, [isActive]);
 
+    const title = chapter ? chapter.title : "SURFACE";
+    const description = chapter ? chapter.description : "Breaking through with everything I have.";
+    const label = chapter ? chapter.chapter_label : "Chapter 03";
+    const image = chapter ? chapter.image : "/assets/images/Artboard_3-1781358319362.png";
+
     return (
         <div className="relative w-full h-full flex items-center justify-center z-10">
             {/* Character — center-right */}
@@ -57,7 +64,7 @@ export default function ChapterRise({ isActive }: ChapterRiseProps) {
                 }}
             >
                 <AppImage
-                    src="/assets/images/Artboard_3-1781358319362.png"
+                    src={image}
                     alt="Anime character rising upward, arm reaching high with determination in dark void"
                     height={580}
                     width={390}
@@ -94,7 +101,7 @@ export default function ChapterRise({ isActive }: ChapterRiseProps) {
             >
                 <h2
                     className="chapter-headline"
-                    data-text="SURFACE"
+                    data-text={title}
                     style={{
                         fontSize: 'clamp(3rem, 10vw, 6.5rem)',
                         opacity: textVisible ? 1 : 0,
@@ -102,7 +109,7 @@ export default function ChapterRise({ isActive }: ChapterRiseProps) {
                         transition: 'opacity 0.8s ease, transform 0.8s cubic-bezier(0.16,1,0.3,1)',
                     }}
                 >
-                    SURFACE
+                    {title}
                 </h2>
 
                 <p
@@ -116,7 +123,7 @@ export default function ChapterRise({ isActive }: ChapterRiseProps) {
                         maxWidth: '320px',
                     }}
                 >
-                    Breaking through with everything I have.
+                    {description}
                 </p>
 
                 <div
@@ -130,7 +137,7 @@ export default function ChapterRise({ isActive }: ChapterRiseProps) {
                         className="font-display text-xs uppercase tracking-widest"
                         style={{ color: 'var(--ice-blue)', opacity: 0.7 }}
                     >
-                        Chapter 03
+                        {label}
                     </span>
                 </div>
             </div>

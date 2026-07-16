@@ -18,6 +18,7 @@ import ChapterTriumph from './components/ChapterTriumph';
 import AlbumsReveal from './components/AlbumsReveal';
 import TopSongsSection from './components/TopSongsSection';
 import SiteFooter from '@/components/Footer';
+import { fetchChapters, Chapter as ApiChapter } from '@/lib/api';
 
 const CHAPTERS = ['intro', 'freefall', 'sink', 'rise', 'triumph', 'albums', 'topsongs', 'footer'] as const;
 type Chapter = (typeof CHAPTERS)[number];
@@ -32,6 +33,20 @@ export default function HomePage() {
   const snapContainerRef = useRef<HTMLDivElement>(null);
   const chapterRefs = useRef<(HTMLElement | null)[]>([]);
   const heroSectionRef = useRef<HTMLElement>(null);
+  const [chapters, setChapters] = useState<ApiChapter[]>([]);
+
+  // Load scrollytelling chapters
+  useEffect(() => {
+    async function load() {
+      try {
+        const data = await fetchChapters();
+        setChapters(data);
+      } catch (err) {
+        console.error("Failed to load scrollytelling chapters on homepage", err);
+      }
+    }
+    load();
+  }, []);
 
   const handleChapterChange = useCallback((chapter: Chapter) => {
     setActiveChapter(chapter);
@@ -119,6 +134,8 @@ export default function HomePage() {
     return () => observers.forEach((o) => o.disconnect());
   }, [handleChapterChange]);
 
+  const getChapterData = (id: string) => chapters.find(c => c.id === id);
+
   return (
     <div className="relative bg-void-black min-h-screen">
       <nav
@@ -194,7 +211,7 @@ export default function HomePage() {
           className="scroll-snap-section"
           style={{ scrollSnapAlign: 'start', height: '100vh' }}
         >
-          <ChapterFreeFall isActive={activeChapter === 'freefall'} />
+          <ChapterFreeFall isActive={activeChapter === 'freefall'} chapter={getChapterData('chapter-1')} />
         </section>
 
         <section
@@ -204,7 +221,7 @@ export default function HomePage() {
           className="scroll-snap-section"
           style={{ scrollSnapAlign: 'start', height: '100vh' }}
         >
-          <ChapterSink isActive={activeChapter === 'sink'} />
+          <ChapterSink isActive={activeChapter === 'sink'} chapter={getChapterData('chapter-2')} />
         </section>
 
         <section
@@ -214,7 +231,7 @@ export default function HomePage() {
           className="scroll-snap-section"
           style={{ scrollSnapAlign: 'start', height: '100vh' }}
         >
-          <ChapterRise isActive={activeChapter === 'rise'} />
+          <ChapterRise isActive={activeChapter === 'rise'} chapter={getChapterData('chapter-3')} />
         </section>
 
         <section
@@ -224,7 +241,7 @@ export default function HomePage() {
           className="scroll-snap-section"
           style={{ scrollSnapAlign: 'start', height: '100vh' }}
         >
-          <ChapterTriumph isActive={activeChapter === 'triumph'} />
+          <ChapterTriumph isActive={activeChapter === 'triumph'} chapter={getChapterData('chapter-4')} />
         </section>
 
         <section

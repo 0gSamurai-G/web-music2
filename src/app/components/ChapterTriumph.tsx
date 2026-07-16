@@ -2,9 +2,11 @@
 
 import React, { useEffect, useState } from 'react';
 import AppImage from '@/components/ui/AppImage';
+import { fetchAlbums, Chapter } from '@/lib/api';
 
 interface ChapterTriumphProps {
     isActive: boolean;
+    chapter?: Chapter;
 }
 
 const GOLD_PARTICLES = Array.from({ length: 12 }, (_, i) => ({
@@ -16,11 +18,24 @@ const GOLD_PARTICLES = Array.from({ length: 12 }, (_, i) => ({
     color: i % 3 === 0 ? 'var(--galaxy-gold)' : 'var(--star-white)',
 }));
 
-export default function ChapterTriumph({ isActive }: ChapterTriumphProps) {
+export default function ChapterTriumph({ isActive, chapter }: ChapterTriumphProps) {
     const [entered, setEntered] = useState(false);
     const [statsVisible, setStatsVisible] = useState(false);
     const [textVisible, setTextVisible] = useState(false);
     const [subtextVisible, setSubtextVisible] = useState(false);
+    const [albumCount, setAlbumCount] = useState(5);
+
+    useEffect(() => {
+        async function load() {
+            try {
+                const albs = await fetchAlbums();
+                setAlbumCount(albs.length);
+            } catch (err) {
+                console.error("Failed to fetch albums count for Triumph chapter", err);
+            }
+        }
+        load();
+    }, []);
 
     useEffect(() => {
         if (!isActive) {
@@ -43,6 +58,17 @@ export default function ChapterTriumph({ isActive }: ChapterTriumphProps) {
             clearTimeout(t4);
         };
     }, [isActive]);
+
+    const title = chapter ? chapter.title : "TRIUMPH";
+    const description = chapter ? chapter.description : "Everything I survived led here.";
+    const label = chapter ? chapter.chapter_label : "Chapter 04";
+    const image = chapter ? chapter.image : "/assets/images/Artboard_4-1781358319348.png";
+    const eyebrow = chapter ? chapter.eyebrow : "Discography";
+    const stat_label = chapter ? (chapter.stat_label || "Across the Cosmos") : "Across the Cosmos";
+
+    // Explicitly fallback to albumCount if stat_number is null/empty or not configured
+    const stat_number_raw = chapter ? chapter.stat_number : null;
+    const stat_number_val = stat_number_raw ? stat_number_raw : String(albumCount);
 
     return (
         <div className="relative w-full h-full flex items-center z-10">
@@ -92,7 +118,7 @@ export default function ChapterTriumph({ isActive }: ChapterTriumphProps) {
                 }}
             >
                 <AppImage
-                    src="/assets/images/Artboard_4-1781358319348.png"
+                    src={image}
                     alt="Anime character standing tall, mic raised high, triumphant smile in dark void"
                     height={620}
                     width={420}
@@ -117,14 +143,14 @@ export default function ChapterTriumph({ isActive }: ChapterTriumphProps) {
                     style={{
                         opacity: statsVisible ? 1 : 0,
                         transform: statsVisible ? 'translateY(0)' : 'translateY(10px)',
-                        transition: 'opacity 0.6s ease, transform 0.6s ease',
+                        transition: 'opacity 0.6s ease',
                     }}
                 >
                     <span
                         className="font-display text-xs uppercase tracking-widest"
                         style={{ color: 'var(--ice-blue)' }}
                     >
-                        Discography
+                        {eyebrow}
                     </span>
                 </div>
 
@@ -145,7 +171,7 @@ export default function ChapterTriumph({ isActive }: ChapterTriumphProps) {
                             marginTop: '0.25rem',
                         }}
                     >
-                        5 ALBUMS
+                        {stat_number_val} {stat_number_val === '1' ? 'ALBUM' : 'ALBUMS'}
                     </h2>
                     <p
                         className="font-sans"
@@ -156,7 +182,7 @@ export default function ChapterTriumph({ isActive }: ChapterTriumphProps) {
                             marginTop: '0.25rem',
                         }}
                     >
-                        Across the Cosmos
+                        {stat_label}
                     </p>
                 </div>
 
@@ -174,7 +200,7 @@ export default function ChapterTriumph({ isActive }: ChapterTriumphProps) {
                 {/* Headline */}
                 <h2
                     className="chapter-headline"
-                    data-text="TRIUMPH"
+                    data-text={title}
                     style={{
                         fontSize: 'clamp(2.5rem, 8vw, 5.5rem)',
                         opacity: textVisible ? 1 : 0,
@@ -182,7 +208,7 @@ export default function ChapterTriumph({ isActive }: ChapterTriumphProps) {
                         transition: 'opacity 0.8s ease, transform 0.8s cubic-bezier(0.16,1,0.3,1)',
                     }}
                 >
-                    TRIUMPH
+                    {title}
                 </h2>
 
                 <p
@@ -195,7 +221,7 @@ export default function ChapterTriumph({ isActive }: ChapterTriumphProps) {
                         transition: 'opacity 0.6s ease',
                     }}
                 >
-                    Everything I survived led here.
+                    {description}
                 </p>
 
                 <div
@@ -209,7 +235,7 @@ export default function ChapterTriumph({ isActive }: ChapterTriumphProps) {
                         className="font-display text-xs uppercase tracking-widest"
                         style={{ color: 'var(--galaxy-gold)', opacity: 0.8 }}
                     >
-                        Chapter 04
+                        {label}
                     </span>
                 </div>
             </div>
