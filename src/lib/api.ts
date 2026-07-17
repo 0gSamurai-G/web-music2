@@ -1,3 +1,4 @@
+// VoidFrequencies Cosmic Music Site API Integration Layer
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export interface Song {
