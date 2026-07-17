@@ -8,23 +8,24 @@ import AppLogo from '@/components/ui/AppLogo';
 import InteractiveStarfield from '../components/InteractiveStarfield';
 import CustomCursor from '../components/CustomCursor';
 import SiteFooter from '@/components/Footer';
+import { fetchAlbum, fetchAlbums, FrontendAlbum, Song, API_BASE_URL } from '@/lib/api';
 
-const TRACKS = [
-  { id: 1, title: 'Free Fall', duration: '3:42', seconds: 222 },
-  { id: 2, title: 'Impact', duration: '4:15', seconds: 255 },
-  { id: 3, title: 'Descent', duration: '5:01', seconds: 301 },
-  { id: 4, title: 'Bubble Up', duration: '3:28', seconds: 208 },
-  { id: 5, title: 'Surface', duration: '4:44', seconds: 284 },
-  { id: 6, title: 'Void Walk', duration: '3:55', seconds: 235 },
-  { id: 7, title: 'Neon Depth', duration: '4:08', seconds: 248 },
-  { id: 8, title: 'Orbit', duration: '3:33', seconds: 213 },
-  { id: 9, title: 'Resonance', duration: '4:50', seconds: 290 },
-  { id: 10, title: 'Triumph', duration: '5:12', seconds: 312 },
-  { id: 11, title: 'Echo Return', duration: '3:18', seconds: 198 },
-  { id: 12, title: 'Void Signal', duration: '4:30', seconds: 270 },
+const TRACKS_FALLBACK = [
+  { id: 1, title: 'Free Fall', duration: '3:42', seconds: 222, lyrics: 'Falling through the void between the stars\nNo ground beneath my feet, no ceiling far\nThe silence wraps around like second skin\nI let go of everything that held me in\nFree fall, free fall\nWhere the gravity dissolves\nFree fall, free fall\nInto everything that calls', audio_path: null, track_number: 1, album_id: 'void-frequencies' },
+  { id: 2, title: 'Impact', duration: '4:15', seconds: 255, lyrics: null, audio_path: null, track_number: 2, album_id: 'void-frequencies' },
+  { id: 3, title: 'Descent', duration: '5:01', seconds: 301, lyrics: null, audio_path: null, track_number: 3, album_id: 'void-frequencies' },
+  { id: 4, title: 'Bubble Up', duration: '3:28', seconds: 208, lyrics: null, audio_path: null, track_number: 4, album_id: 'void-frequencies' },
+  { id: 5, title: 'Surface', duration: '4:44', seconds: 284, lyrics: null, audio_path: null, track_number: 5, album_id: 'void-frequencies' },
+  { id: 6, title: 'Void Walk', duration: '3:55', seconds: 235, lyrics: null, audio_path: null, track_number: 6, album_id: 'void-frequencies' },
+  { id: 7, title: 'Neon Depth', duration: '4:08', seconds: 248, lyrics: null, audio_path: null, track_number: 7, album_id: 'void-frequencies' },
+  { id: 8, title: 'Orbit', duration: '3:33', seconds: 213, lyrics: null, audio_path: null, track_number: 8, album_id: 'void-frequencies' },
+  { id: 9, title: 'Resonance', duration: '4:50', seconds: 290, lyrics: null, audio_path: null, track_number: 9, album_id: 'void-frequencies' },
+  { id: 10, title: 'Triumph', duration: '5:12', seconds: 312, lyrics: null, audio_path: null, track_number: 10, album_id: 'void-frequencies' },
+  { id: 11, title: 'Echo Return', duration: '3:18', seconds: 198, lyrics: null, audio_path: null, track_number: 11, album_id: 'void-frequencies' },
+  { id: 12, title: 'Void Signal', duration: '4:30', seconds: 270, lyrics: null, audio_path: null, track_number: 12, album_id: 'void-frequencies' },
 ];
 
-const LYRICS_LINES = [
+const LYRICS_FALLBACK = [
   'Falling through the void between the stars',
   'No ground beneath my feet, no ceiling far',
   'The silence wraps around like second skin',
@@ -36,7 +37,7 @@ const LYRICS_LINES = [
 ];
 
 // Glassmorphic dual-cover wrapper — purple theme for album detail / music player
-function GlassImageCover({ alt, className = '' }: { alt: string; className?: string }) {
+function GlassImageCover({ cover, alt, className = '' }: { cover: string; alt: string; className?: string }) {
   const [hovered, setHovered] = useState(false);
   return (
     <div
@@ -54,7 +55,7 @@ function GlassImageCover({ alt, className = '' }: { alt: string; className?: str
       onMouseLeave={() => setHovered(false)}
     >
       <DualCoverImage
-        srcA="/assets/images/cover_1_a.png"
+        srcA={cover}
         srcB="/assets/images/cover_1_b.png"
         alt={alt}
         circleRadius={150}
@@ -66,6 +67,8 @@ function GlassImageCover({ alt, className = '' }: { alt: string; className?: str
 }
 
 export default function AlbumDetailPage() {
+  const [album, setAlbum] = useState<any>(null);
+  const [tracks, setTracks] = useState<any[]>(TRACKS_FALLBACK);
   const [activeTrack, setActiveTrack] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(75);
@@ -73,11 +76,37 @@ export default function AlbumDetailPage() {
   const [activeLyricLine, setActiveLyricLine] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [screen, setScreen] = useState<'album' | 'player'>('album');
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lyricIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const track = TRACKS[activeTrack];
-  const progressPercent = (currentTime / track.seconds) * 100;
+  useEffect(() => {
+    async function loadAlbum() {
+      try {
+        setLoading(true);
+        const searchParams = new URLSearchParams(window.location.search);
+        const id = searchParams.get('id') || 'void-frequencies';
+        const data = await fetchAlbum(id);
+        if (data) {
+          setAlbum(data);
+          if (data.songs && data.songs.length > 0) {
+            setTracks(data.songs);
+          }
+        }
+        setFetchError(false);
+      } catch (err) {
+        console.error("Failed to load album details", err);
+        setFetchError(true);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadAlbum();
+  }, []);
+
+  const track = tracks[activeTrack];
+  const progressPercent = track ? (currentTime / track.seconds) * 100 : 0;
 
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
@@ -85,8 +114,21 @@ export default function AlbumDetailPage() {
     return `${m}:${String(sec).padStart(2, '0')}`;
   };
 
+  const getLyricsLines = (): string[] => {
+    if (!track) return [];
+    if (track.lyrics) {
+      return track.lyrics.split('\n').map((line: string) => line.trim()).filter(Boolean);
+    }
+    if (track.title === 'Free Fall') {
+      return LYRICS_FALLBACK;
+    }
+    return [];
+  };
+
+  const lyricsLines = getLyricsLines();
+
   useEffect(() => {
-    if (isPlaying) {
+    if (isPlaying && track) {
       progressIntervalRef.current = setInterval(() => {
         setCurrentTime((prev) => {
           if (prev >= track.seconds) {
@@ -96,9 +138,12 @@ export default function AlbumDetailPage() {
           return prev + 1;
         });
       }, 1000);
-      lyricIntervalRef.current = setInterval(() => {
-        setActiveLyricLine((prev) => (prev + 1) % LYRICS_LINES.length);
-      }, 3000);
+
+      if (lyricsLines.length > 0) {
+        lyricIntervalRef.current = setInterval(() => {
+          setActiveLyricLine((prev) => (prev + 1) % lyricsLines.length);
+        }, 3000);
+      }
     } else {
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
       if (lyricIntervalRef.current) clearInterval(lyricIntervalRef.current);
@@ -107,7 +152,7 @@ export default function AlbumDetailPage() {
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
       if (lyricIntervalRef.current) clearInterval(lyricIntervalRef.current);
     };
-  }, [isPlaying, track.seconds]);
+  }, [isPlaying, track, lyricsLines.length]);
 
   const handleSelectTrack = (index: number) => {
     setActiveTrack(index);
@@ -121,10 +166,11 @@ export default function AlbumDetailPage() {
     setCurrentTime(0);
   };
   const handleNext = () => {
-    setActiveTrack((prev) => Math.min(TRACKS.length - 1, prev + 1));
+    setActiveTrack((prev) => Math.min(tracks.length - 1, prev + 1));
     setCurrentTime(0);
   };
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!track) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const ratio = (e.clientX - rect.left) / rect.width;
     setCurrentTime(Math.floor(ratio * track.seconds));
@@ -161,6 +207,64 @@ export default function AlbumDetailPage() {
       </div>
     </nav>
   );
+
+  const albumTitle = album ? album.title : 'Void Frequencies';
+  const albumYear = album ? album.year : '2024';
+  const albumTracksCount = album ? album.tracks : '12';
+  const albumCover = album ? album.cover : '/assets/images/cover_1_a.png';
+  const albumDescription = album ? album.description : `The debut album that started everything. Twelve tracks of deep space noir, recorded in the quiet hours between midnight and dawn. Each song is a frequency sent into the void — some came back, some didn't.`;
+
+  if (fetchError) {
+    return (
+      <div className="relative min-h-screen">
+        <InteractiveStarfield opacity={0.7} />
+        <CustomCursor />
+        <Nav />
+        <main className="relative z-10 pt-32 pb-20 px-6 md:px-12">
+          <div className="max-w-md mx-auto text-center glass-card p-8" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+            <p className="text-red-400 font-display text-xs uppercase tracking-widest mb-2">✦ Album Offline ✦</p>
+            <p className="text-star-white/60 text-sm font-sans mb-6">The frequencies of this album are temporarily lost in the dark matter.</p>
+            <Link href="/albums" className="glass-btn px-6 py-2.5 text-xs font-display uppercase tracking-widest inline-block">Back to Albums</Link>
+          </div>
+        </main>
+        <SiteFooter />
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="relative min-h-screen">
+        <InteractiveStarfield opacity={0.7} />
+        <CustomCursor />
+        <Nav />
+        <main className="relative z-10 pt-32 pb-20 px-6 md:px-12 animate-pulse">
+          <div className="max-w-7xl mx-auto">
+            <div className="h-6 w-32 bg-white/5 rounded mb-12" />
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14">
+              <div className="lg:col-span-5 flex flex-col items-center">
+                <div className="w-full aspect-square max-w-[420px] rounded-2xl bg-white/5 border border-white/10" />
+              </div>
+              <div className="lg:col-span-7 flex flex-col gap-8">
+                <div className="glass-card p-8 flex flex-col gap-3" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="h-3 w-24 bg-white/5 rounded" />
+                  <div className="h-10 w-3/4 bg-white/5 rounded" />
+                  <div className="h-4 w-full bg-white/5 rounded mt-4" />
+                  <div className="h-4 w-5/6 bg-white/5 rounded" />
+                </div>
+                <div className="glass-card p-6 flex flex-col gap-4" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="h-3 w-32 bg-white/5 rounded" />
+                  <div className="h-12 w-full bg-white/5 rounded" />
+                  <div className="h-12 w-full bg-white/5 rounded" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+        <SiteFooter />
+      </div>
+    );
+  }
 
   return (
         <div className="relative min-h-screen">
@@ -221,7 +325,7 @@ export default function AlbumDetailPage() {
               {/* Left — Album Cover */}
               <div className="lg:col-span-5 flex flex-col items-center">
                 <div className="w-full" style={{ aspectRatio: '1', maxWidth: '420px' }}>
-                  <GlassImageCover alt="Void Frequencies album cover" className="w-full h-full" />
+                  <GlassImageCover cover={albumCover} alt={`${albumTitle} album cover`} className="w-full h-full" />
                 </div>
               </div>
 
@@ -233,7 +337,7 @@ export default function AlbumDetailPage() {
                     className="font-display text-xs uppercase tracking-widest block mb-3"
                     style={{ color: 'var(--ice-blue)' }}
                   >
-                    2024 · 12 Tracks
+                    {albumYear} · {albumTracksCount} Tracks
                   </span>
                   <h1
                     className="font-display font-bold mb-6"
@@ -244,7 +348,7 @@ export default function AlbumDetailPage() {
                       lineHeight: 1.05,
                     }}
                   >
-                    Void Frequencies
+                    {albumTitle}
                   </h1>
                   <p
                     className="font-sans"
@@ -255,54 +359,26 @@ export default function AlbumDetailPage() {
                       marginBottom: '1.25rem',
                     }}
                   >
-                    The debut album that started everything. Twelve tracks of deep space noir,
-                    recorded in the quiet hours between midnight and dawn. Each song is a frequency
-                    sent into the void — some came back, some didn&apos;t.
+                    {albumDescription}
                   </p>
-                  <p
-                    className="font-sans"
-                    style={{
-                      fontSize: '0.9375rem',
-                      lineHeight: 1.8,
-                      color: 'rgba(255,255,255,0.5)',
-                    }}
-                  >
-                    Engineered in total darkness. Mixed with the kind of silence that only comes
-                    after everything loud has faded away. The album drifts between neo-classical
-                    ambient and hard-edged electronic noir, carving out its own gravitational field.
-                  </p>
-                  <div className="flex gap-4 mt-8 flex-wrap">
-                    <span
-                      className="px-4 py-1.5 rounded-full font-display text-xs"
-                      style={{
-                        background: 'rgba(107,95,228,0.15)',
-                        border: '1px solid rgba(107,95,228,0.3)',
-                        color: 'var(--ice-blue)',
-                      }}
-                    >
-                      Ambient
-                    </span>
-                    <span
-                      className="px-4 py-1.5 rounded-full font-display text-xs"
-                      style={{
-                        background: 'rgba(107,95,228,0.15)',
-                        border: '1px solid rgba(107,95,228,0.3)',
-                        color: 'var(--ice-blue)',
-                      }}
-                    >
-                      Electronic Noir
-                    </span>
-                    <span
-                      className="px-4 py-1.5 rounded-full font-display text-xs"
-                      style={{
-                        background: 'rgba(107,95,228,0.15)',
-                        border: '1px solid rgba(107,95,228,0.3)',
-                        color: 'var(--ice-blue)',
-                      }}
-                    >
-                      Space
-                    </span>
-                  </div>
+
+                  {album && album.genre_tags && album.genre_tags.length > 0 && (
+                    <div className="flex gap-4 mt-8 flex-wrap">
+                      {album.genre_tags.map((tag: string) => (
+                        <span
+                          key={tag}
+                          className="px-4 py-1.5 rounded-full font-display text-xs"
+                          style={{
+                            background: 'rgba(107,95,228,0.15)',
+                            border: '1px solid rgba(107,95,228,0.3)',
+                            color: 'var(--ice-blue)',
+                          }}
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Tracklist */}
@@ -315,7 +391,7 @@ export default function AlbumDetailPage() {
                       Tracklist — Click to play
                     </span>
                   </div>
-                  {TRACKS.map((t, i) => (
+                  {tracks.map((t, i) => (
                     <button
                       key={t.id}
                       onClick={() => handleSelectTrack(i)}
@@ -380,7 +456,7 @@ export default function AlbumDetailPage() {
       )}
 
       {/* ─── MUSIC PLAYER SCREEN ──────────────────────────────── */}
-      {screen === 'player' && (
+      {screen === 'player' && track && (
         <main className="relative z-10 pt-28 pb-20 px-6 md:px-12">
           <div className="max-w-7xl mx-auto">
             <button
@@ -433,7 +509,7 @@ export default function AlbumDetailPage() {
               <div className="lg:col-span-5 flex flex-col items-center">
                 {/* Song artwork with glass border */}
                 <div className="w-full" style={{ aspectRatio: '1', maxWidth: '380px' }}>
-                  <GlassImageCover alt={`${track.title} artwork`} className="w-full h-full" />
+                  <GlassImageCover cover={albumCover} alt={`${track.title} artwork`} className="w-full h-full" />
                 </div>
 
                 {/* Playback controls */}
@@ -544,7 +620,7 @@ export default function AlbumDetailPage() {
                     className="font-display text-xs uppercase tracking-widest block mb-3"
                     style={{ color: 'var(--ice-blue)' }}
                   >
-                    Track {activeTrack + 1} of {TRACKS.length}
+                    Track {activeTrack + 1} of {tracks.length}
                   </span>
                   <h1
                     className="font-display font-bold mb-2"
@@ -561,7 +637,7 @@ export default function AlbumDetailPage() {
                     className="font-sans mt-1 mb-6"
                     style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.4)' }}
                   >
-                    Void Frequencies — 2024
+                    {albumTitle} — {albumYear}
                   </p>
                   <div className="flex items-center gap-2">
                     <div
@@ -604,7 +680,7 @@ export default function AlbumDetailPage() {
                       Queue
                     </span>
                   </div>
-                  {TRACKS.map((t, i) => (
+                  {tracks.map((t, i) => (
                     <button
                       key={t.id}
                       onClick={() => handleSelectTrack(i)}
@@ -652,19 +728,21 @@ export default function AlbumDetailPage() {
                 </div>
 
                 {/* Lyrics toggle */}
-                <button
-                  onClick={() => setLyricsVisible(!lyricsVisible)}
-                  className="w-full glass-btn py-2.5 font-display text-xs uppercase tracking-widest flex items-center justify-center gap-2"
-                  data-cursor="hover"
-                  data-cursor-label="Lyrics"
-                >
-                  <span style={{ color: 'var(--galaxy-gold)' }}>✦</span>
-                  {lyricsVisible ? 'Hide Lyrics' : 'Show Lyrics'}
-                </button>
+                {lyricsLines.length > 0 && (
+                  <button
+                    onClick={() => setLyricsVisible(!lyricsVisible)}
+                    className="w-full glass-btn py-2.5 font-display text-xs uppercase tracking-widest flex items-center justify-center gap-2"
+                    data-cursor="hover"
+                    data-cursor-label="Lyrics"
+                  >
+                    <span style={{ color: 'var(--galaxy-gold)' }}>✦</span>
+                    {lyricsVisible ? 'Hide Lyrics' : 'Show Lyrics'}
+                  </button>
+                )}
 
-                {lyricsVisible && (
+                {lyricsVisible && lyricsLines.length > 0 && (
                   <div className="glass-card p-6 text-center">
-                    {LYRICS_LINES.slice(Math.max(0, activeLyricLine - 1), activeLyricLine + 2).map(
+                    {lyricsLines.slice(Math.max(0, activeLyricLine - 1), activeLyricLine + 2).map(
                       (line, i) => (
                         <p
                           key={i}

@@ -58,3 +58,10 @@ verify_output_v2.txt
 screenshot_list.txt
 video_list.txt
 video_list_v2.txt
+
+# Firebase / GCP credentials ignore
+*service-account*.json
+*adminsdk*.json
+backend/service-account.json
+backend/firebase-key.json
+firebase-key.json

@@ -17,7 +17,7 @@ const N_PATTERN = [6, 3, 0, 4, 8, 5, 2];
 export default function AdminLoginFlow({ onClose }: AdminLoginFlowProps) {
     const [path, setPath] = useState<number[]>([]);
     const [error, setError] = useState(false);
-    const [stage, setStage] = useState<'pattern' | 'google' | 'edit'>('pattern');
+    const [stage, setStage] = useState<'pattern' | 'google'>('pattern');
     const [authError, setAuthError] = useState('');
     const router = useRouter();
 
@@ -117,18 +117,6 @@ export default function AdminLoginFlow({ onClose }: AdminLoginFlowProps) {
                                 {authError}
                             </div>
                         )}
-                    </div>
-                )}
-
-                {stage === 'edit' && (
-                    <div className="flex flex-col items-center w-full">
-                        <h2 className="font-display font-bold text-2xl mb-6 tracking-wide text-center text-ice-blue">Edit Mode</h2>
-                        <div className="w-full bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] p-6 rounded-lg text-center font-sans">
-                            <p className="mb-4 opacity-70">Welcome to the secret edit interface.</p>
-                            <p className="text-xs opacity-50 block p-4 border border-dashed border-[rgba(255,255,255,0.2)] rounded">
-                                Dummy Edit Controls Placeholder
-                            </p>
-                        </div>
                     </div>
                 )}
             </div>

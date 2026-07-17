@@ -62,7 +62,10 @@ export default function AdminPage() {
         chapter_label: '',
         eyebrow: '',
         stat_number: '',
-        stat_label: ''
+        stat_label: '',
+        accent_color: '#a8b4f8',
+        image_side: 'left',
+        show_divider: 1
     });
 
     // File uploads state
@@ -189,6 +192,36 @@ export default function AdminPage() {
         return {
             'Authorization': `Bearer ${token}`
         };
+    };
+
+    const validateImageFile = (file: File): boolean => {
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+        const ext = file.name.split('.').pop()?.toLowerCase();
+        const allowedExts = ['jpg', 'jpeg', 'png', 'webp'];
+        if (!allowedTypes.includes(file.type) && !allowedExts.includes(ext || '')) {
+            showError("Invalid image type. Image file must be JPG, JPEG, PNG, or WEBP.");
+            return false;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+            showError("Image file is too large. Maximum size is 10MB.");
+            return false;
+        }
+        return true;
+    };
+
+    const validateAudioFile = (file: File): boolean => {
+        const allowedTypes = ['audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/x-wav'];
+        const ext = file.name.split('.').pop()?.toLowerCase();
+        const allowedExts = ['mp3', 'wav'];
+        if (!allowedTypes.includes(file.type) && !allowedExts.includes(ext || '')) {
+            showError("Invalid audio type. Audio file must be MP3 or WAV.");
+            return false;
+        }
+        if (file.size > 30 * 1024 * 1024) {
+            showError("Audio file is too large. Maximum size is 30MB.");
+            return false;
+        }
+        return true;
     };
 
     // ==================== ALBUM ACTIONS ====================
@@ -441,7 +474,10 @@ export default function AdminPage() {
             chapter_label: '',
             eyebrow: '',
             stat_number: '',
-            stat_label: ''
+            stat_label: '',
+            accent_color: '#a8b4f8',
+            image_side: 'left',
+            show_divider: 1
         });
         setChapterFile(null);
         setPreviewUrl('');
@@ -457,7 +493,10 @@ export default function AdminPage() {
             chapter_label: chap.chapter_label,
             eyebrow: chap.eyebrow,
             stat_number: chap.stat_number || '',
-            stat_label: chap.stat_label || ''
+            stat_label: chap.stat_label || '',
+            accent_color: chap.accent_color || '#a8b4f8',
+            image_side: chap.image_side || 'left',
+            show_divider: typeof chap.show_divider === 'number' ? chap.show_divider : 1
         });
         setChapterFile(null);
         setPreviewUrl(chap.image);
@@ -489,6 +528,9 @@ export default function AdminPage() {
                         eyebrow: chapterForm.eyebrow,
                         stat_number: chapterForm.stat_number || null,
                         stat_label: chapterForm.stat_label || null,
+                        accent_color: chapterForm.accent_color,
+                        image_side: chapterForm.image_side,
+                        show_divider: Number(chapterForm.show_divider),
                         image: 'media/chapters/' + chapterForm.id + '.png'
                     })
                 });
@@ -507,7 +549,10 @@ export default function AdminPage() {
                         chapter_label: chapterForm.chapter_label,
                         eyebrow: chapterForm.eyebrow,
                         stat_number: chapterForm.stat_number || null,
-                        stat_label: chapterForm.stat_label || null
+                        stat_label: chapterForm.stat_label || null,
+                        accent_color: chapterForm.accent_color,
+                        image_side: chapterForm.image_side,
+                        show_divider: Number(chapterForm.show_divider)
                     })
                 });
                 if (!res.ok) throw new Error(await res.text());
@@ -1009,8 +1054,13 @@ export default function AdminPage() {
                                     onChange={(e) => {
                                         const file = e.target.files?.[0];
                                         if (file) {
-                                            setCoverFile(file);
-                                            setPreviewUrl(URL.createObjectURL(file));
+                                            if (validateImageFile(file)) {
+                                                setCoverFile(file);
+                                                setPreviewUrl(URL.createObjectURL(file));
+                                            } else {
+                                                e.target.value = '';
+                                                setCoverFile(null);
+                                            }
                                         }
                                     }}
                                     className="w-full text-xs opacity-80"
@@ -1092,7 +1142,14 @@ export default function AdminPage() {
                                     accept="audio/*"
                                     onChange={(e) => {
                                         const file = e.target.files?.[0];
-                                        if (file) setAudioFile(file);
+                                        if (file) {
+                                            if (validateAudioFile(file)) {
+                                                setAudioFile(file);
+                                            } else {
+                                                e.target.value = '';
+                                                setAudioFile(null);
+                                            }
+                                        }
                                     }}
                                     className="w-full text-xs opacity-80"
                                 />
@@ -1200,6 +1257,40 @@ export default function AdminPage() {
                                 </div>
                             </div>
 
+                            <div className="grid grid-cols-3 gap-4">
+                                <div>
+                                    <label className="block text-xs opacity-50 mb-1">Accent Color</label>
+                                    <input
+                                        type="color"
+                                        value={chapterForm.accent_color}
+                                        onChange={(e) => setChapterForm({...chapterForm, accent_color: e.target.value})}
+                                        className="w-full h-10 bg-[rgba(255,255,255,0.05)] border border-glass-border rounded-lg cursor-pointer focus:outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs opacity-50 mb-1">Image Side</label>
+                                    <select
+                                        value={chapterForm.image_side}
+                                        onChange={(e) => setChapterForm({...chapterForm, image_side: e.target.value})}
+                                        className="w-full bg-void-black border border-glass-border rounded-lg p-2.5 text-star-white focus:outline-none h-10"
+                                    >
+                                        <option value="left">Left</option>
+                                        <option value="right">Right</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs opacity-50 mb-1">Show Divider</label>
+                                    <select
+                                        value={chapterForm.show_divider}
+                                        onChange={(e) => setChapterForm({...chapterForm, show_divider: Number(e.target.value)})}
+                                        className="w-full bg-void-black border border-glass-border rounded-lg p-2.5 text-star-white focus:outline-none h-10"
+                                    >
+                                        <option value={1}>Yes</option>
+                                        <option value={0}>No</option>
+                                    </select>
+                                </div>
+                            </div>
+
                             <div>
                                 <label className="block text-xs opacity-50 mb-1">Character Graphic Image</label>
                                 <input
@@ -1208,8 +1299,13 @@ export default function AdminPage() {
                                     onChange={(e) => {
                                         const file = e.target.files?.[0];
                                         if (file) {
-                                            setChapterFile(file);
-                                            setPreviewUrl(URL.createObjectURL(file));
+                                            if (validateImageFile(file)) {
+                                                setChapterFile(file);
+                                                setPreviewUrl(URL.createObjectURL(file));
+                                            } else {
+                                                e.target.value = '';
+                                                setChapterFile(null);
+                                            }
                                         }
                                     }}
                                     className="w-full text-xs opacity-80"

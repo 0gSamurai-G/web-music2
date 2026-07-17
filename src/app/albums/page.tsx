@@ -7,10 +7,45 @@ import AppLogo from '@/components/ui/AppLogo';
 import InteractiveStarfield from '../components/InteractiveStarfield';
 import CustomCursor from '../components/CustomCursor';
 import SiteFooter from '@/components/Footer';
-import { ALBUMS } from '../components/AlbumsReveal';
+import { fetchAlbums, fetchSettings, FrontendAlbum } from '@/lib/api';
 
 export default function AlbumsPage() {
   const heroRef = useRef<HTMLDivElement>(null);
+  const [albums, setAlbums] = useState<FrontendAlbum[]>([]);
+  const [yearsActive, setYearsActive] = useState('3');
+  const [streams, setStreams] = useState('∞');
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setLoading(true);
+        const [albumsData, settingsData] = await Promise.all([
+          fetchAlbums(),
+          fetchSettings()
+        ]);
+        if (albumsData && albumsData.length > 0) {
+          setAlbums(albumsData);
+        }
+        if (settingsData) {
+          const ya = settingsData.find(s => s.key === 'years_active');
+          if (ya) setYearsActive(ya.value);
+          const st = settingsData.find(s => s.key === 'streams');
+          if (st) setStreams(st.value);
+        }
+        setFetchError(false);
+      } catch (err) {
+        console.error("Failed to fetch albums/settings for albums page", err);
+        setFetchError(true);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  const totalTracks = albums.reduce((sum, album) => sum + album.tracks, 0);
 
   return (
     <div className="relative min-h-screen">
@@ -72,87 +107,111 @@ export default function AlbumsPage() {
 
             {/* Grid view */}
             <div className="relative">
-              <div
-                className="grid gap-6"
-                style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}
-              >
-                {ALBUMS.map((album, i) => (
-                  <Link
-                    key={album.id}
-                    href="/album-detail"
-                    data-cursor="album"
-                    data-cursor-label="Explore"
-                    className="opacity-100"
-                  >
-                      <div
-                        className="glass-card group overflow-hidden"
-                        style={{
-                          transition:
-                            'transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, background 0.3s ease',
-                          background: 'transparent !important',
-                          backdropFilter: 'none !important',
-                        }}
-                      onMouseEnter={(e) => {
-                        const el = e.currentTarget as HTMLElement;
-                        el.style.transform = 'translateY(-6px)';
-                        el.style.borderColor = 'rgba(168,180,248,0.3)';
-                        el.style.boxShadow =
-                          '0 16px 48px rgba(0,0,0,0.8), 0 0 40px rgba(107,95,228,0.25)';
-                        el.style.background = 'rgba(255, 255, 255, 0.08)';
-                        el.style.backdropFilter = 'blur(20px)';
-                      }}
-                      onMouseLeave={(e) => {
-                        const el = e.currentTarget as HTMLElement;
-                        el.style.transform = 'translateY(0)';
-                        el.style.borderColor = 'rgba(255,255,255,0.10)';
-                        el.style.boxShadow =
-                          '0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)';
-                        el.style.background = 'transparent';
-                        el.style.backdropFilter = 'none';
-                      }}
-                    >
-                      <div
-                        className="overflow-hidden"
-                        style={{ height: 220, position: 'relative' }}
-                      >
-                        <DualCoverImage
-                          srcA="/assets/images/cover_1_a.png"
-                          srcB="/assets/images/cover_1_b.png"
-                          alt={`${album.title} album artwork`}
-                          circleRadius={95}
-                          ringRgb="168,180,248"
-                          className="w-full"
-                          style={{ height: '220px', display: 'block' }}
-                        />
-                      </div>
-                      <div className="p-4">
-                        <h3
-                          className="font-display font-semibold"
-                          style={{ fontSize: '1rem', color: 'var(--star-white)' }}
-                        >
-                          {album.title}
-                        </h3>
-                        <p
-                          className="font-sans mt-1"
-                          style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}
-                        >
-                          {album.year} · {album.tracks} tracks
-                        </p>
-                        <p
-                          className="font-sans mt-3 line-clamp-2"
-                          style={{
-                            fontSize: '0.8rem',
-                            color: 'rgba(255,255,255,0.4)',
-                            lineHeight: 1.5,
-                          }}
-                        >
-                          {album.description}
-                        </p>
+              {fetchError ? (
+                <div className="glass-card p-6 text-center max-w-md mx-auto">
+                  <p className="text-red-400 font-display text-xs uppercase tracking-widest mb-2">✦ Frequencies Offline ✦</p>
+                  <p className="text-star-white/60 text-sm font-sans">We couldn't reach the celestial database. Please check your signal.</p>
+                </div>
+              ) : loading ? (
+                <div
+                  className="grid gap-6 animate-pulse"
+                  style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}
+                >
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="glass-card overflow-hidden" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+                      <div className="bg-white/5 h-[220px] w-full" />
+                      <div className="p-4 flex flex-col gap-2">
+                        <div className="h-4 bg-white/5 w-3/4 rounded" />
+                        <div className="h-3 bg-white/5 w-1/2 rounded" />
+                        <div className="h-3 bg-white/5 w-full rounded mt-2" />
+                        <div className="h-3 bg-white/5 w-5/6 rounded" />
                       </div>
                     </div>
-                  </Link>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div
+                  className="grid gap-6"
+                  style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}
+                >
+                  {albums.map((album) => (
+                    <Link
+                      key={album.id}
+                      href={`/album-detail?id=${album.id}`}
+                      data-cursor="album"
+                      data-cursor-label="Explore"
+                      className="opacity-100"
+                    >
+                        <div
+                          className="glass-card group overflow-hidden"
+                          style={{
+                            transition:
+                              'transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, background 0.3s ease',
+                            background: 'transparent !important',
+                            backdropFilter: 'none !important',
+                          }}
+                        onMouseEnter={(e) => {
+                          const el = e.currentTarget as HTMLElement;
+                          el.style.transform = 'translateY(-6px)';
+                          el.style.borderColor = 'rgba(168,180,248,0.3)';
+                          el.style.boxShadow =
+                            '0 16px 48px rgba(0,0,0,0.8), 0 0 40px rgba(107,95,228,0.25)';
+                          el.style.background = 'rgba(255, 255, 255, 0.08)';
+                          el.style.backdropFilter = 'blur(20px)';
+                        }}
+                        onMouseLeave={(e) => {
+                          const el = e.currentTarget as HTMLElement;
+                          el.style.transform = 'translateY(0)';
+                          el.style.borderColor = 'rgba(255,255,255,0.10)';
+                          el.style.boxShadow =
+                            '0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)';
+                          el.style.background = 'transparent';
+                          el.style.backdropFilter = 'none';
+                        }}
+                      >
+                        <div
+                          className="overflow-hidden"
+                          style={{ height: 220, position: 'relative' }}
+                        >
+                          <DualCoverImage
+                            srcA={album.cover}
+                            srcB="/assets/images/cover_1_b.png"
+                            alt={`${album.title} album artwork`}
+                            circleRadius={95}
+                            ringRgb="168,180,248"
+                            className="w-full"
+                            style={{ height: '220px', display: 'block' }}
+                          />
+                        </div>
+                        <div className="p-4">
+                          <h3
+                            className="font-display font-semibold"
+                            style={{ fontSize: '1rem', color: 'var(--star-white)' }}
+                          >
+                            {album.title}
+                          </h3>
+                          <p
+                            className="font-sans mt-1"
+                            style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}
+                          >
+                            {album.year} · {album.tracks} tracks
+                          </p>
+                          <p
+                            className="font-sans mt-3 line-clamp-2"
+                            style={{
+                              fontSize: '0.8rem',
+                              color: 'rgba(255,255,255,0.4)',
+                              lineHeight: 1.5,
+                            }}
+                          >
+                            {album.description}
+                          </p>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -162,10 +221,10 @@ export default function AlbumsPage() {
             style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '3rem' }}
           >
             {[
-              { label: 'Albums', value: '5' },
-              { label: 'Total Tracks', value: '50' },
-              { label: 'Years Active', value: '3' },
-              { label: 'Streams', value: '∞' },
+              { label: 'Albums', value: String(albums.length || 10) },
+              { label: 'Total Tracks', value: String(totalTracks || 103) },
+              { label: 'Years Active', value: yearsActive },
+              { label: 'Streams', value: streams },
             ].map((stat) => (
               <div key={stat.label} className="glass-card p-6 text-center">
                 <div

@@ -73,6 +73,9 @@ class ScrollytellingChapterBase(BaseModel):
     eyebrow: str
     stat_number: Optional[str] = None
     stat_label: Optional[str] = None
+    accent_color: str = "#a8b4f8"
+    image_side: str = "left"
+    show_divider: int = 1
     position: int = 1
 
 class ScrollytellingChapterCreate(ScrollytellingChapterBase):
@@ -86,6 +89,9 @@ class ScrollytellingChapterUpdate(BaseModel):
     eyebrow: Optional[str] = None
     stat_number: Optional[str] = None
     stat_label: Optional[str] = None
+    accent_color: Optional[str] = None
+    image_side: Optional[str] = None
+    show_divider: Optional[int] = None
     position: Optional[int] = None
 
 class ScrollytellingChapterResponse(ScrollytellingChapterBase):

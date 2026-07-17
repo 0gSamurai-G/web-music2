@@ -145,7 +145,10 @@ CHAPTERS_SEED = [
         "image_source": "Artboard_1-1781358319348.png",
         "eyebrow": "Chapter 01",
         "stat_number": None,
-        "stat_label": None
+        "stat_label": None,
+        "image_side": "left",
+        "accent_color": "#a8b4f8",
+        "show_divider": 1
     },
     {
         "id": "chapter-2",
@@ -155,7 +158,10 @@ CHAPTERS_SEED = [
         "image_source": "Artboard_2-1781358319225.png",
         "eyebrow": "Chapter 02",
         "stat_number": None,
-        "stat_label": None
+        "stat_label": None,
+        "image_side": "right",
+        "accent_color": "#6b5fe4",
+        "show_divider": 1
     },
     {
         "id": "chapter-3",
@@ -165,7 +171,10 @@ CHAPTERS_SEED = [
         "image_source": "Artboard_3-1781358319362.png",
         "eyebrow": "Chapter 03",
         "stat_number": None,
-        "stat_label": None
+        "stat_label": None,
+        "image_side": "left",
+        "accent_color": "#a8b4f8",
+        "show_divider": 1
     },
     {
         "id": "chapter-4",
@@ -175,13 +184,20 @@ CHAPTERS_SEED = [
         "image_source": "Artboard_4-1781358319348.png",
         "eyebrow": "Discography",
         "stat_number": "5",
-        "stat_label": "Across the Cosmos"
+        "stat_label": "Across the Cosmos",
+        "image_side": "right",
+        "accent_color": "#c9a84c",
+        "show_divider": 1
     }
 ]
 
 async def seed_data():
     engine = create_async_engine(DATABASE_URL)
     async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+    # Create tables
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
     print("Cleaning up target media directory...")
     if MEDIA_DIR.exists():
@@ -316,6 +332,9 @@ async def seed_data():
                 eyebrow=chap["eyebrow"],
                 stat_number=chap["stat_number"],
                 stat_label=chap["stat_label"],
+                accent_color=chap["accent_color"],
+                image_side=chap["image_side"],
+                show_divider=chap["show_divider"],
                 position=pos
             )
             session.add(chapter_model)

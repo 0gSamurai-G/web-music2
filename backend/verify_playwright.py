@@ -20,28 +20,30 @@ def run_verification():
             # CUJ 1: Load Homepage
             print("Navigating to http://localhost:4028...")
             page.goto("http://localhost:4028")
-            page.wait_for_timeout(2000)
+            page.wait_for_timeout(3000)
             page.screenshot(path="/home/jules/verification/screenshots/homepage.png")
 
             # CUJ 2: Navigate to Albums page
             print("Navigating to http://localhost:4028/albums...")
             page.goto("http://localhost:4028/albums")
-            page.wait_for_timeout(2000)
+            page.wait_for_timeout(3000)
             page.screenshot(path="/home/jules/verification/screenshots/albums_page.png")
 
             # CUJ 3: Navigate to Album Details
             print("Navigating to http://localhost:4028/album-detail?id=void-frequencies...")
             page.goto("http://localhost:4028/album-detail?id=void-frequencies")
-            page.wait_for_timeout(2000)
+            page.wait_for_timeout(4000)
             page.screenshot(path="/home/jules/verification/screenshots/album_detail.png")
 
             # CUJ 4: Click on first track "Free Fall" to trigger player screen
             print("Clicking play track button...")
-            first_track_btn = page.get_by_text("Free Fall", exact=True).first
+            first_track_btn = page.locator('button:has-text("Free Fall")').first
+            # Wait for it to exist and be visible
+            first_track_btn.wait_for(state="visible", timeout=6000)
             if first_track_btn.is_visible():
                 first_track_btn.click()
                 print("Clicked play track.")
-                page.wait_for_timeout(2000)
+                page.wait_for_timeout(3000)
                 page.screenshot(path="/home/jules/verification/screenshots/album_player.png")
             else:
                 print("Warning: Track button not found.")
