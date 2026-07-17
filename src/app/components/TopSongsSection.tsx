@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { API_BASE_URL } from '@/lib/api';
 
 interface Song {
   id: number;
@@ -335,6 +336,10 @@ interface TopSongsSectionProps {
 }
 
 export default function TopSongsSection({ isActive = true }: TopSongsSectionProps) {
+  const [songs, setSongs] = useState<Song[]>(SONGS);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
+
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [moonVisible, setMoonVisible] = useState(false);
@@ -344,27 +349,55 @@ export default function TopSongsSection({ isActive = true }: TopSongsSectionProp
   const [controlsVisible, setControlsVisible] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
 
+  useEffect(() => {
+    async function load() {
+      try {
+        setLoading(true);
+        const res = await fetch(`${API_BASE_URL}/api/albums/void-frequencies`);
+        if (!res.ok) throw new Error("Failed to fetch top tracks");
+        const data = await res.json();
+        if (data && data.songs && data.songs.length > 0) {
+          const mapped: Song[] = data.songs.slice(0, 10).map((song: any) => ({
+            id: song.id,
+            title: song.title,
+            artist: 'VoidFrequencies',
+            album: 'Void Frequencies',
+            duration: song.duration
+          }));
+          setSongs(mapped);
+          setFetchError(false);
+        }
+      } catch (err) {
+        console.error("Failed to load Top Songs dynamically:", err);
+        setFetchError(true);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
+
   const handleTrackClick = useCallback((index: number) => {
     setActiveIndex(index);
     setIsPlaying(true);
   }, []);
 
   const handlePrev = useCallback(() => {
-    setActiveIndex((prev) => (prev === 0 ? SONGS.length - 1 : prev - 1));
+    setActiveIndex((prev) => (prev === 0 ? songs.length - 1 : prev - 1));
     setIsPlaying(true);
-  }, []);
+  }, [songs]);
 
   const handleNext = useCallback(() => {
-    setActiveIndex((prev) => (prev === SONGS.length - 1 ? 0 : prev + 1));
+    setActiveIndex((prev) => (prev === songs.length - 1 ? 0 : prev + 1));
     setIsPlaying(true);
-  }, []);
+  }, [songs]);
 
   const handlePlayPause = useCallback(() => {
     setIsPlaying((prev) => !prev);
   }, []);
 
   useEffect(() => {
-    if (!isActive) {
+    if (!isActive || loading || fetchError) {
       setMoonVisible(false);
       setSongListVisible(false);
       setCoverVisible(false);
@@ -386,9 +419,62 @@ export default function TopSongsSection({ isActive = true }: TopSongsSectionProp
       clearTimeout(t4);
       clearTimeout(t5);
     };
-  }, [isActive]);
+  }, [isActive, loading, fetchError]);
 
-  const activeSong = SONGS[activeIndex];
+  const activeSong = songs[activeIndex] || SONGS[0];
+
+  if (fetchError) {
+    return (
+      <section
+        ref={sectionRef}
+        className="relative z-10 h-screen w-full flex items-center justify-center"
+      >
+        <div className="glass-card p-6 text-center max-w-md mx-auto">
+          <p className="text-red-400 font-display text-xs uppercase tracking-widest mb-2">✦ Connection Offline ✦</p>
+          <p className="text-star-white/60 text-sm font-sans">The top frequencies are temporarily drifting. Please check back later.</p>
+        </div>
+      </section>
+    );
+  }
+
+  if (loading) {
+    return (
+      <section
+        ref={sectionRef}
+        className="relative z-10 h-screen w-full flex items-center justify-center"
+      >
+        <div className="max-w-7xl mx-auto w-full px-6 md:px-12 flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-16">
+          <div className="relative flex flex-col items-center lg:flex-row gap-8 lg:gap-16 w-full animate-pulse">
+            <div className="relative flex items-center justify-center">
+              <div
+                className="rounded-full bg-void-black border border-glass-border flex flex-col items-center justify-center p-8 gap-4"
+                style={{
+                  width: 'clamp(300px, 45vw, 520px)',
+                  height: 'clamp(300px, 45vw, 520px)',
+                  background: 'rgba(255, 255, 255, 0.02)',
+                }}
+              >
+                {[...Array(6)].map((_, idx) => (
+                  <div key={idx} className="h-10 w-4/5 rounded-full bg-white/5" />
+                ))}
+              </div>
+            </div>
+            <div className="flex-1 w-full flex flex-col items-center justify-center lg:items-start gap-4">
+              <div className="w-[280px] aspect-square rounded-2xl bg-white/5" />
+              <div className="h-6 w-48 rounded bg-white/5 mt-4" />
+              <div className="h-4 w-32 rounded bg-white/5" />
+              <div className="h-2 w-[280px] rounded bg-white/5 mt-4" />
+              <div className="flex gap-4 mt-4">
+                <div className="h-10 w-10 rounded-full bg-white/5" />
+                <div className="h-14 w-14 rounded-full bg-white/5" />
+                <div className="h-10 w-10 rounded-full bg-white/5" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section
@@ -420,7 +506,7 @@ export default function TopSongsSection({ isActive = true }: TopSongsSectionProp
               >
                 <div className="w-full max-h-full overflow-y-auto scroll-smooth pr-1">
                   <div className="flex flex-col gap-2">
-                    {SONGS.map((song, index) => (
+                    {songs.map((song, index) => (
                       <TrackRow
                         key={song.id}
                         song={song}

@@ -2,8 +2,9 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { fetchAlbums, FrontendAlbum, API_BASE_URL } from '@/lib/api';
 
-export const ALBUMS = [
+const ALBUMS_FALLBACK = [
     {
         id: 'void-frequencies',
         title: 'Void Frequencies',
@@ -86,9 +87,6 @@ export const ALBUMS = [
     },
 ];
 
-const TOTAL = ALBUMS.length;
-const FEATURED_COUNT = 5;
-
 const CARD_STYLES: Record<number, { scale: number; blur: number; opacity: number; zIndex: number }> = {
     0: { scale: 1.0, blur: 0, opacity: 1.0, zIndex: 10 },
     1: { scale: 0.86, blur: 2, opacity: 0.65, zIndex: 7 },
@@ -108,9 +106,31 @@ export default function AlbumsReveal({ isActive = true }: AlbumsRevealProps) {
     const [spreadProgress, setSpreadProgress] = useState(0);
     const [centerIdx, setCenterIdx] = useState(0);
     const [heroVisible, setHeroVisible] = useState(false);
+    const [albums, setAlbums] = useState<any[]>(ALBUMS_FALLBACK);
+    const [loading, setLoading] = useState(true);
+    const [fetchError, setFetchError] = useState(false);
 
     useEffect(() => {
-        if (!isActive) {
+        async function load() {
+            try {
+                setLoading(true);
+                const data = await fetchAlbums();
+                if (data && data.length > 0) {
+                    setAlbums(data);
+                }
+                setFetchError(false);
+            } catch (err) {
+                console.error("Failed to load albums for carousel", err);
+                setFetchError(true);
+            } finally {
+                setLoading(false);
+            }
+        }
+        load();
+    }, []);
+
+    useEffect(() => {
+        if (!isActive || loading || fetchError) {
             setSpreadProgress(0);
             setHeroVisible(false);
             return;
@@ -123,10 +143,13 @@ export default function AlbumsReveal({ isActive = true }: AlbumsRevealProps) {
             clearTimeout(t1);
             clearTimeout(t2);
         };
-    }, [isActive]);
+    }, [isActive, loading, fetchError]);
 
-    const prev = useCallback(() => setCenterIdx((c) => mod(c - 1, TOTAL)), []);
-    const next = useCallback(() => setCenterIdx((c) => mod(c + 1, TOTAL)), []);
+    const TOTAL = albums.length;
+    const FEATURED_COUNT = 5;
+
+    const prev = useCallback(() => setCenterIdx((c) => mod(c - 1, TOTAL)), [TOTAL]);
+    const next = useCallback(() => setCenterIdx((c) => mod(c + 1, TOTAL)), [TOTAL]);
 
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
@@ -140,6 +163,40 @@ export default function AlbumsReveal({ isActive = true }: AlbumsRevealProps) {
     const eased = spreadProgress === 1 ? 1 : 1 - Math.pow(1 - spreadProgress, 4);
     const showControls = spreadProgress > 0.5;
     const controlsOpacity = Math.min(1, (spreadProgress - 0.5) * 2);
+
+    if (fetchError) {
+        return (
+            <section
+                ref={sectionRef}
+                className="relative z-10 h-screen w-full flex flex-col items-center justify-center overflow-hidden"
+            >
+                <div className="glass-card p-6 text-center max-w-md mx-auto">
+                    <p className="text-red-400 font-display text-xs uppercase tracking-widest mb-2">✦ Frequencies Offline ✦</p>
+                    <p className="text-star-white/60 text-sm font-sans">We couldn't reach the celestial database. Please check your signal.</p>
+                </div>
+            </section>
+        );
+    }
+
+    if (loading) {
+        return (
+            <section
+                ref={sectionRef}
+                className="relative z-10 h-screen w-full flex flex-col items-center justify-center overflow-hidden"
+            >
+                <div className="max-w-7xl mx-auto w-full px-6 md:px-12 flex flex-col items-center">
+                    <div className="h-4 bg-white/5 w-32 rounded mb-3 animate-pulse" />
+                    <div className="h-10 bg-white/5 w-64 rounded mb-12 animate-pulse" />
+
+                    <div className="flex gap-6 justify-center items-center w-full max-w-4xl animate-pulse">
+                        <div className="w-[180px] h-[280px] bg-white/5 rounded-2xl hidden md:block opacity-40" />
+                        <div className="w-[260px] h-[360px] bg-white/5 rounded-2xl border border-white/10" />
+                        <div className="w-[180px] h-[280px] bg-white/5 rounded-2xl hidden md:block opacity-40" />
+                    </div>
+                </div>
+            </section>
+        );
+    }
 
     return (
         <section
@@ -178,7 +235,7 @@ export default function AlbumsReveal({ isActive = true }: AlbumsRevealProps) {
                     className="relative flex items-center justify-center"
                     style={{ height: '440px', userSelect: 'none' }}
                 >
-                    {ALBUMS.map((album, albumIdx) => {
+                    {albums.map((album, albumIdx) => {
                         let offset = albumIdx - centerIdx;
                         if (offset > TOTAL / 2) offset -= TOTAL;
                         if (offset < -TOTAL / 2) offset += TOTAL;
@@ -219,7 +276,7 @@ export default function AlbumsReveal({ isActive = true }: AlbumsRevealProps) {
                                 }}
                             >
                                 <Link
-                                    href="/album-detail"
+                                    href={`/album-detail?id=${album.id}`}
                                     data-cursor="album"
                                     data-cursor-label="Explore"
                                     tabIndex={isCenter && showControls ? 0 : -1}
@@ -326,7 +383,7 @@ export default function AlbumsReveal({ isActive = true }: AlbumsRevealProps) {
                 </div>
 
                 <div className="flex justify-center gap-2 mt-2">
-                    {ALBUMS.map((_, i) => (
+                    {albums.map((_, i) => (
                         <button
                             key={i}
                             onClick={() => setCenterIdx(i)}

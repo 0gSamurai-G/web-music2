@@ -2,12 +2,12 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { onAuthStateChanged, signOut, signInWithPopup } from 'firebase/auth';
+import { auth, googleProvider } from '@/lib/firebase';
 import InteractiveStarfield from '../components/InteractiveStarfield';
 import CustomCursor from '../components/CustomCursor';
 import AppLogo from '@/components/ui/AppLogo';
-import { fetchAlbums, fetchSettings, fetchChapters, API_BASE_URL, FrontendAlbum, Song, SiteSetting, Chapter } from '@/lib/api';
+import { fetchAlbums, fetchSettings, fetchChapters, API_BASE_URL, FrontendAlbum, Song, SiteSetting, Chapter, verifyAuthToken } from '@/lib/api';
 
 export default function AdminPage() {
     const [user, setUser] = useState<any>(null);
@@ -62,7 +62,10 @@ export default function AdminPage() {
         chapter_label: '',
         eyebrow: '',
         stat_number: '',
-        stat_label: ''
+        stat_label: '',
+        accent_color: '#a8b4f8',
+        image_side: 'left',
+        show_divider: 1
     });
 
     // File uploads state
@@ -71,15 +74,31 @@ export default function AdminPage() {
     const [chapterFile, setChapterFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string>('');
 
+    const [loginError, setLoginError] = useState('');
+
     // Auth monitor
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (usr) => {
+        const unsubscribe = onAuthStateChanged(auth, async (usr) => {
             if (usr) {
                 if (usr.email === 'srdeshpande1122@gmail.com') {
-                    setUser(usr);
+                    try {
+                        const token = await usr.getIdToken();
+                        const isVerified = await verifyAuthToken(token);
+                        if (isVerified) {
+                            setUser(usr);
+                        } else {
+                            setLoginError('Server-side verification failed.');
+                            await signOut(auth);
+                            setUser(null);
+                        }
+                    } catch (err) {
+                        setLoginError('Authentication check failed.');
+                        await signOut(auth);
+                        setUser(null);
+                    }
                 } else {
-                    // Sign out invalid user
-                    signOut(auth);
+                    setLoginError('Unauthorized email address.');
+                    await signOut(auth);
                     setUser(null);
                 }
             } else {
@@ -89,6 +108,29 @@ export default function AdminPage() {
         });
         return () => unsubscribe();
     }, []);
+
+    const handleGoogleLogin = async () => {
+        setLoginError('');
+        try {
+            const result = await signInWithPopup(auth, googleProvider);
+            if (result.user.email === 'srdeshpande1122@gmail.com') {
+                const token = await result.user.getIdToken();
+                const isVerified = await verifyAuthToken(token);
+                if (isVerified) {
+                    setUser(result.user);
+                } else {
+                    setLoginError('Server-side verification failed.');
+                    await auth.signOut();
+                }
+            } else {
+                setLoginError('Unauthorized email address.');
+                await auth.signOut();
+            }
+        } catch (err: any) {
+            console.error("Sign-in error", err);
+            setLoginError(err.message || 'Failed to sign in.');
+        }
+    };
 
     // Fetch data if authenticated
     useEffect(() => {
@@ -150,6 +192,36 @@ export default function AdminPage() {
         return {
             'Authorization': `Bearer ${token}`
         };
+    };
+
+    const validateImageFile = (file: File): boolean => {
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+        const ext = file.name.split('.').pop()?.toLowerCase();
+        const allowedExts = ['jpg', 'jpeg', 'png', 'webp'];
+        if (!allowedTypes.includes(file.type) && !allowedExts.includes(ext || '')) {
+            showError("Invalid image type. Image file must be JPG, JPEG, PNG, or WEBP.");
+            return false;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+            showError("Image file is too large. Maximum size is 10MB.");
+            return false;
+        }
+        return true;
+    };
+
+    const validateAudioFile = (file: File): boolean => {
+        const allowedTypes = ['audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/x-wav'];
+        const ext = file.name.split('.').pop()?.toLowerCase();
+        const allowedExts = ['mp3', 'wav'];
+        if (!allowedTypes.includes(file.type) && !allowedExts.includes(ext || '')) {
+            showError("Invalid audio type. Audio file must be MP3 or WAV.");
+            return false;
+        }
+        if (file.size > 30 * 1024 * 1024) {
+            showError("Audio file is too large. Maximum size is 30MB.");
+            return false;
+        }
+        return true;
     };
 
     // ==================== ALBUM ACTIONS ====================
@@ -402,7 +474,10 @@ export default function AdminPage() {
             chapter_label: '',
             eyebrow: '',
             stat_number: '',
-            stat_label: ''
+            stat_label: '',
+            accent_color: '#a8b4f8',
+            image_side: 'left',
+            show_divider: 1
         });
         setChapterFile(null);
         setPreviewUrl('');
@@ -418,7 +493,10 @@ export default function AdminPage() {
             chapter_label: chap.chapter_label,
             eyebrow: chap.eyebrow,
             stat_number: chap.stat_number || '',
-            stat_label: chap.stat_label || ''
+            stat_label: chap.stat_label || '',
+            accent_color: chap.accent_color || '#a8b4f8',
+            image_side: chap.image_side || 'left',
+            show_divider: typeof chap.show_divider === 'number' ? chap.show_divider : 1
         });
         setChapterFile(null);
         setPreviewUrl(chap.image);
@@ -450,6 +528,9 @@ export default function AdminPage() {
                         eyebrow: chapterForm.eyebrow,
                         stat_number: chapterForm.stat_number || null,
                         stat_label: chapterForm.stat_label || null,
+                        accent_color: chapterForm.accent_color,
+                        image_side: chapterForm.image_side,
+                        show_divider: Number(chapterForm.show_divider),
                         image: 'media/chapters/' + chapterForm.id + '.png'
                     })
                 });
@@ -468,7 +549,10 @@ export default function AdminPage() {
                         chapter_label: chapterForm.chapter_label,
                         eyebrow: chapterForm.eyebrow,
                         stat_number: chapterForm.stat_number || null,
-                        stat_label: chapterForm.stat_label || null
+                        stat_label: chapterForm.stat_label || null,
+                        accent_color: chapterForm.accent_color,
+                        image_side: chapterForm.image_side,
+                        show_divider: Number(chapterForm.show_divider)
                     })
                 });
                 if (!res.ok) throw new Error(await res.text());
@@ -564,16 +648,33 @@ export default function AdminPage() {
             <div className="relative min-h-screen bg-void-black flex flex-col items-center justify-center text-star-white px-4">
                 <InteractiveStarfield opacity={0.6} />
                 <CustomCursor />
-                <div className="relative z-10 p-8 glass-card max-w-sm w-full text-center">
-                    <h2 className="font-display font-bold text-2xl mb-4 tracking-wide text-red-400">Access Denied</h2>
+                <div className="relative z-10 p-8 glass-card max-w-md w-full text-center">
+                    <div className="flex justify-center mb-4">
+                        <AppLogo size={48} />
+                    </div>
+                    <h2 className="font-display font-bold text-2xl mb-2 tracking-wide text-ice-blue">Admin Access</h2>
                     <p className="text-sm opacity-60 mb-6 font-sans">
-                        You must be signed in as the authorized administrator to access this interface.
+                        Sign in with the authorized Google account to manage the site content.
                     </p>
+
+                    <button
+                        onClick={handleGoogleLogin}
+                        className="glass-btn px-6 py-3 font-display text-sm tracking-widest w-full flex items-center justify-center gap-3 transition-colors hover:bg-[rgba(255,255,255,0.1)] mb-4"
+                    >
+                        Sign in with Google
+                    </button>
+
+                    {loginError && (
+                        <div className="mb-4 text-red-400 text-sm font-sans px-4 py-2 bg-[rgba(255,0,0,0.1)] border border-[rgba(255,0,0,0.2)] rounded-md">
+                            ⚠️ {loginError}
+                        </div>
+                    )}
+
                     <button
                         onClick={() => router.push('/')}
-                        className="glass-btn px-6 py-2.5 font-display text-xs tracking-widest uppercase transition-colors"
+                        className="text-xs uppercase tracking-widest text-star-white opacity-50 hover:opacity-100 transition-opacity"
                     >
-                        Back to Home
+                        Back to Public Site
                     </button>
                 </div>
             </div>
@@ -953,8 +1054,13 @@ export default function AdminPage() {
                                     onChange={(e) => {
                                         const file = e.target.files?.[0];
                                         if (file) {
-                                            setCoverFile(file);
-                                            setPreviewUrl(URL.createObjectURL(file));
+                                            if (validateImageFile(file)) {
+                                                setCoverFile(file);
+                                                setPreviewUrl(URL.createObjectURL(file));
+                                            } else {
+                                                e.target.value = '';
+                                                setCoverFile(null);
+                                            }
                                         }
                                     }}
                                     className="w-full text-xs opacity-80"
@@ -1036,7 +1142,14 @@ export default function AdminPage() {
                                     accept="audio/*"
                                     onChange={(e) => {
                                         const file = e.target.files?.[0];
-                                        if (file) setAudioFile(file);
+                                        if (file) {
+                                            if (validateAudioFile(file)) {
+                                                setAudioFile(file);
+                                            } else {
+                                                e.target.value = '';
+                                                setAudioFile(null);
+                                            }
+                                        }
                                     }}
                                     className="w-full text-xs opacity-80"
                                 />
@@ -1144,6 +1257,40 @@ export default function AdminPage() {
                                 </div>
                             </div>
 
+                            <div className="grid grid-cols-3 gap-4">
+                                <div>
+                                    <label className="block text-xs opacity-50 mb-1">Accent Color</label>
+                                    <input
+                                        type="color"
+                                        value={chapterForm.accent_color}
+                                        onChange={(e) => setChapterForm({...chapterForm, accent_color: e.target.value})}
+                                        className="w-full h-10 bg-[rgba(255,255,255,0.05)] border border-glass-border rounded-lg cursor-pointer focus:outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs opacity-50 mb-1">Image Side</label>
+                                    <select
+                                        value={chapterForm.image_side}
+                                        onChange={(e) => setChapterForm({...chapterForm, image_side: e.target.value})}
+                                        className="w-full bg-void-black border border-glass-border rounded-lg p-2.5 text-star-white focus:outline-none h-10"
+                                    >
+                                        <option value="left">Left</option>
+                                        <option value="right">Right</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs opacity-50 mb-1">Show Divider</label>
+                                    <select
+                                        value={chapterForm.show_divider}
+                                        onChange={(e) => setChapterForm({...chapterForm, show_divider: Number(e.target.value)})}
+                                        className="w-full bg-void-black border border-glass-border rounded-lg p-2.5 text-star-white focus:outline-none h-10"
+                                    >
+                                        <option value={1}>Yes</option>
+                                        <option value={0}>No</option>
+                                    </select>
+                                </div>
+                            </div>
+
                             <div>
                                 <label className="block text-xs opacity-50 mb-1">Character Graphic Image</label>
                                 <input
@@ -1152,8 +1299,13 @@ export default function AdminPage() {
                                     onChange={(e) => {
                                         const file = e.target.files?.[0];
                                         if (file) {
-                                            setChapterFile(file);
-                                            setPreviewUrl(URL.createObjectURL(file));
+                                            if (validateImageFile(file)) {
+                                                setChapterFile(file);
+                                                setPreviewUrl(URL.createObjectURL(file));
+                                            } else {
+                                                e.target.value = '';
+                                                setChapterFile(null);
+                                            }
                                         }
                                     }}
                                     className="w-full text-xs opacity-80"

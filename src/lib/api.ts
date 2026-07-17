@@ -1,3 +1,4 @@
+// VoidFrequencies Cosmic Music Site API Integration Layer
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export interface Song {
@@ -47,6 +48,9 @@ export interface Chapter {
     eyebrow: string;
     stat_number: string | null;
     stat_label: string | null;
+    accent_color: string;
+    image_side: string;
+    show_divider: number;
     position: number;
 }
 
@@ -111,4 +115,17 @@ export async function fetchChapters(): Promise<Chapter[]> {
     }
     const data: Chapter[] = await res.json();
     return data.map(mapChapterToFrontend);
+}
+
+export async function verifyAuthToken(idToken: string): Promise<boolean> {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/auth/verify`, {
+            headers: {
+                'Authorization': `Bearer ${idToken}`
+            }
+        });
+        return res.ok;
+    } catch {
+        return false;
+    }
 }

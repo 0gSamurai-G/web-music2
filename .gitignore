@@ -35,3 +35,33 @@ jest-test-results.json
 
 # Optional: if using TurboRepo or monorepo
 turbo/
+
+# Python / Backend ignore
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+backend/__pycache__/
+backend/migrations/__pycache__/
+backend/voidfrequencies.db
+backend/media/
+backend/verify_result.txt
+backend/verify_seed_v2.txt
+backend.log
+frontend.log
+npm_install_output.txt
+type_check_output.txt
+type_check_output_admin.txt
+verify_output.txt
+verify_output_v2.txt
+screenshot_list.txt
+video_list.txt
+video_list_v2.txt
+
+# Firebase / GCP credentials ignore
+*service-account*.json
+*adminsdk*.json
+backend/service-account.json
+backend/firebase-key.json
+firebase-key.json

@@ -48,4 +48,7 @@ class ScrollytellingChapter(Base):
     eyebrow = Column(String, nullable=False) # e.g. "Discography"
     stat_number = Column(String, nullable=True) # e.g. "5"
     stat_label = Column(String, nullable=True) # e.g. "Across the Cosmos"
+    accent_color = Column(String, nullable=False, default="#a8b4f8")
+    image_side = Column(String, nullable=False, default="left")
+    show_divider = Column(Integer, nullable=False, default=1) # 1 for True, 0 for False
     position = Column(Integer, nullable=False, default=1)

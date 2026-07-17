@@ -19,6 +19,10 @@ from auth_utils import verify_firebase_token
 
 router = APIRouter()
 
+@router.get("/auth/verify")
+async def verify_auth(_email: str = Depends(verify_firebase_token)):
+    return {"status": "success", "email": _email}
+
 # Local Media Storage Base
 MEDIA_DIR = Path(__file__).resolve().parent / "media"
 MEDIA_DIR.mkdir(parents=True, exist_ok=True)
@@ -362,6 +366,30 @@ async def update_settings(
 
 # ==================== FILE UPLOAD ENDPOINTS ====================
 
+def validate_file(file: UploadFile, is_audio: bool):
+    ext = Path(file.filename or "").suffix.lower()
+    if is_audio:
+        allowed_exts = {".mp3", ".wav"}
+        max_size = 30 * 1024 * 1024  # 30MB
+        error_msg = "Audio file must be MP3 or WAV and under 30MB."
+    else:
+        allowed_exts = {".jpg", ".jpeg", ".png", ".webp"}
+        max_size = 10 * 1024 * 1024  # 10MB
+        error_msg = "Image file must be JPG, JPEG, PNG, or WEBP and under 10MB."
+
+    if ext not in allowed_exts:
+        raise HTTPException(status_code=400, detail=f"Invalid file type. {error_msg}")
+
+    try:
+        file.file.seek(0, os.SEEK_END)
+        size = file.file.tell()
+        file.file.seek(0)
+    except Exception:
+        size = 0
+
+    if size > max_size:
+        raise HTTPException(status_code=400, detail=f"File is too large. {error_msg}")
+
 @router.post("/upload/cover/{album_id}")
 async def upload_cover(
     album_id: str,
@@ -369,6 +397,8 @@ async def upload_cover(
     db: AsyncSession = Depends(get_db),
     _email: str = Depends(verify_firebase_token)
 ):
+    validate_file(file, is_audio=False)
+
     result = await db.execute(select(Album).where(Album.id == album_id))
     album = result.scalar_one_or_none()
     if not album:
@@ -399,6 +429,8 @@ async def upload_audio(
     db: AsyncSession = Depends(get_db),
     _email: str = Depends(verify_firebase_token)
 ):
+    validate_file(file, is_audio=True)
+
     result = await db.execute(select(Song).where(Song.id == song_id))
     song = result.scalar_one_or_none()
     if not song:
@@ -433,6 +465,8 @@ async def upload_chapter_image(
     db: AsyncSession = Depends(get_db),
     _email: str = Depends(verify_firebase_token)
 ):
+    validate_file(file, is_audio=False)
+
     result = await db.execute(select(ScrollytellingChapter).where(ScrollytellingChapter.id == chapter_id))
     chap = result.scalar_one_or_none()
     if not chap:

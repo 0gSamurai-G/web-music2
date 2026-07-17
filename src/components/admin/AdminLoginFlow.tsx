@@ -5,6 +5,8 @@ import PatternLock from 'react-pattern-lock';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '@/lib/firebase';
 import StarfieldCanvas from '@/app/components/StarfieldCanvas'; // Reusing existing starfield
+import { useRouter } from 'next/navigation';
+import { verifyAuthToken } from '@/lib/api';
 
 interface AdminLoginFlowProps {
     onClose: () => void;
@@ -15,8 +17,9 @@ const N_PATTERN = [6, 3, 0, 4, 8, 5, 2];
 export default function AdminLoginFlow({ onClose }: AdminLoginFlowProps) {
     const [path, setPath] = useState<number[]>([]);
     const [error, setError] = useState(false);
-    const [stage, setStage] = useState<'pattern' | 'google' | 'edit'>('pattern');
+    const [stage, setStage] = useState<'pattern' | 'google'>('pattern');
     const [authError, setAuthError] = useState('');
+    const router = useRouter();
 
     const handleFinish = () => {
         if (!path || path.length === 0) return;
@@ -39,7 +42,15 @@ export default function AdminLoginFlow({ onClose }: AdminLoginFlowProps) {
         try {
             const result = await signInWithPopup(auth, googleProvider);
             if (result.user.email === 'srdeshpande1122@gmail.com') {
-                setStage('edit');
+                const token = await result.user.getIdToken();
+                const isVerified = await verifyAuthToken(token);
+                if (isVerified) {
+                    onClose();
+                    router.push('/admin');
+                } else {
+                    setAuthError('Server-side verification failed. Access Denied.');
+                    await auth.signOut();
+                }
             } else {
                 setAuthError('Unauthorized user.');
                 await auth.signOut(); // Sign out unauthorized users
@@ -106,18 +117,6 @@ export default function AdminLoginFlow({ onClose }: AdminLoginFlowProps) {
                                 {authError}
                             </div>
                         )}
-                    </div>
-                )}
-
-                {stage === 'edit' && (
-                    <div className="flex flex-col items-center w-full">
-                        <h2 className="font-display font-bold text-2xl mb-6 tracking-wide text-center text-ice-blue">Edit Mode</h2>
-                        <div className="w-full bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] p-6 rounded-lg text-center font-sans">
-                            <p className="mb-4 opacity-70">Welcome to the secret edit interface.</p>
-                            <p className="text-xs opacity-50 block p-4 border border-dashed border-[rgba(255,255,255,0.2)] rounded">
-                                Dummy Edit Controls Placeholder
-                            </p>
-                        </div>
                     </div>
                 )}
             </div>
