@@ -22,7 +22,8 @@ if not firebase_admin._apps:
             cred = credentials.Certificate(FIREBASE_SERVICE_ACCOUNT_PATH)
             firebase_app = firebase_admin.initialize_app(cred)
         else:
-            firebase_app = firebase_admin.initialize_app()
+            project_id = os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("GCLOUD_PROJECT") or "mystic-chat-df071"
+            firebase_app = firebase_admin.initialize_app(options={'projectId': project_id})
     except Exception as e:
         print(f"Warning: Firebase Admin SDK initialization failed: {e}.")
 
@@ -55,9 +56,13 @@ async def verify_firebase_token(authorization: str = Header(None)) -> str:
             )
 
         return email
-    except auth.ExpiredIdTokenError:
+    except auth.ExpiredIdTokenError as e:
+        print(f"Auth error: ExpiredIdTokenError - {e}")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired.")
-    except auth.InvalidIdTokenError:
+    except auth.InvalidIdTokenError as e:
+        print(f"Auth error: InvalidIdTokenError - {e}")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token is invalid.")
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Authentication failed: {str(e)}")
