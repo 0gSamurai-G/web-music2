@@ -19,4 +19,16 @@ export const imageHosts = [
         protocol: 'https',
         hostname: 'img.rocket.new',
     },
+    {
+        protocol: 'http',
+        hostname: '127.0.0.1',
+        port: '8000',
+        pathname: '/**',
+    },
+    {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '8000',
+        pathname: '/**',
+    },
 ];

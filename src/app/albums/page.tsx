@@ -2,6 +2,8 @@ import React from 'react';
 import AlbumsPageClient from '../components/AlbumsPageClient';
 import { fetchAlbums, fetchSettings, FrontendAlbum } from '@/lib/api';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AlbumsPage() {
   let albums: FrontendAlbum[] = [];
   let yearsActive = '3';

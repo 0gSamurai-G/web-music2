@@ -83,7 +83,7 @@ export function mapChapterToFrontend(chap: Chapter): Chapter {
 }
 
 export async function fetchAlbums(): Promise<FrontendAlbum[]> {
-    const res = await fetch(`${API_BASE_URL}/api/albums`);
+    const res = await fetch(`${API_BASE_URL}/api/albums`, { cache: 'no-store' });
     if (!res.ok) {
         throw new Error("Failed to fetch albums");
     }
@@ -92,7 +92,7 @@ export async function fetchAlbums(): Promise<FrontendAlbum[]> {
 }
 
 export async function fetchAlbum(id: string): Promise<FrontendAlbum> {
-    const res = await fetch(`${API_BASE_URL}/api/albums/${id}`);
+    const res = await fetch(`${API_BASE_URL}/api/albums/${id}`, { cache: 'no-store' });
     if (!res.ok) {
         throw new Error(`Failed to fetch album ${id}`);
     }
@@ -101,7 +101,7 @@ export async function fetchAlbum(id: string): Promise<FrontendAlbum> {
 }
 
 export async function fetchSettings(): Promise<SiteSetting[]> {
-    const res = await fetch(`${API_BASE_URL}/api/settings`);
+    const res = await fetch(`${API_BASE_URL}/api/settings`, { cache: 'no-store' });
     if (!res.ok) {
         throw new Error("Failed to fetch site settings");
     }
@@ -109,7 +109,7 @@ export async function fetchSettings(): Promise<SiteSetting[]> {
 }
 
 export async function fetchChapters(): Promise<Chapter[]> {
-    const res = await fetch(`${API_BASE_URL}/api/chapters`);
+    const res = await fetch(`${API_BASE_URL}/api/chapters`, { cache: 'no-store' });
     if (!res.ok) {
         throw new Error("Failed to fetch scrollytelling chapters");
     }
