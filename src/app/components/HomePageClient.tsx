@@ -15,7 +15,7 @@ import DynamicChapter from './DynamicChapter';
 import AlbumsReveal from './AlbumsReveal';
 import TopSongsSection from './TopSongsSection';
 import SiteFooter from '@/components/Footer';
-import { Chapter as ApiChapter } from '@/lib/api';
+import { Chapter as ApiChapter, FrontendAlbum } from '@/lib/api';
 import AppLoader from '@/components/ui/AppLoader';
 
 /**
@@ -33,19 +33,10 @@ type ActiveSection = StaticChapter | `chapter-${number}`;
 
 interface HomePageClientProps {
   initialChapters: ApiChapter[];
+  initialAlbums: FrontendAlbum[];
 }
 
-/** Map chapter index → star / refraction opacity for cinematic transitions */
-function getChapterVisuals(index: number, total: number): { starOpacity: number; refractionOpacity: number } {
-  const progress = index / Math.max(total - 1, 1);
-  if (index === 0) return { starOpacity: 1, refractionOpacity: 0 };
-  if (progress < 0.25) return { starOpacity: 1, refractionOpacity: 0 };
-  if (progress < 0.5) return { starOpacity: 0.25, refractionOpacity: 0.08 };
-  if (progress < 0.75) return { starOpacity: 0.9, refractionOpacity: 0 };
-  return { starOpacity: 0.75, refractionOpacity: 0 };
-}
-
-export default function HomePageClient({ initialChapters }: HomePageClientProps) {
+export default function HomePageClient({ initialChapters, initialAlbums }: HomePageClientProps) {
   // Sort once by position (ascending), so admin reorder is reflected immediately
   const sortedChapters = [...initialChapters].sort((a, b) => a.position - b.position);
 
@@ -80,17 +71,31 @@ export default function HomePageClient({ initialChapters }: HomePageClientProps)
 
       // Dynamic chapters — cinematically progress through the scroll
       const chapterIdx = sectionIndex - 1; // 0-based among chapters
-      const { starOpacity: so, refractionOpacity: ro } = getChapterVisuals(chapterIdx, sortedChapters.length);
-      setStarOpacity(so);
-      setRefractionOpacity(ro);
+      const modVariant = chapterIdx % 4;
 
-      // Surface "pulse" effect on the chapter after the sink-style one
-      if (chapterIdx === 2) {
+      let so = 1;
+      let ro = 0;
+
+      if (modVariant === 0) {
+        so = 1;
+        ro = 0;
+      } else if (modVariant === 1) {
+        so = 0.25;
+        ro = 0.08;
+      } else if (modVariant === 2) {
+        so = 0.9;
+        ro = 0;
         setSurfacePulse(true);
         setTimeout(() => setSurfacePulse(false), 400);
+      } else if (modVariant === 3) {
+        so = 0.75;
+        ro = 0;
       }
+
+      setStarOpacity(so);
+      setRefractionOpacity(ro);
     },
-    [sortedChapters.length]
+    []
   );
 
   useEffect(() => {
@@ -244,7 +249,7 @@ export default function HomePageClient({ initialChapters }: HomePageClientProps)
           className="scroll-snap-section"
           style={{ scrollSnapAlign: 'start', height: '100vh' }}
         >
-          <AlbumsReveal isActive={activeSection === 'albums'} />
+          <AlbumsReveal isActive={activeSection === 'albums'} initialAlbums={initialAlbums} />
         </section>
 
         {/* ── Section N+2: Top songs ── */}

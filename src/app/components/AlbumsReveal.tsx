@@ -99,21 +99,21 @@ function mod(n: number, m: number) {
 
 interface AlbumsRevealProps {
     isActive?: boolean;
+    initialAlbums?: FrontendAlbum[];
 }
 
-export default function AlbumsReveal({ isActive = true }: AlbumsRevealProps) {
+export default function AlbumsReveal({ isActive = true, initialAlbums }: AlbumsRevealProps) {
     const sectionRef = useRef<HTMLElement>(null);
     const [spreadProgress, setSpreadProgress] = useState(0);
     const [centerIdx, setCenterIdx] = useState(0);
     const [heroVisible, setHeroVisible] = useState(false);
-    const [albums, setAlbums] = useState<any[]>(ALBUMS_FALLBACK);
-    const [loading, setLoading] = useState(true);
+    const [albums, setAlbums] = useState<FrontendAlbum[]>(initialAlbums && initialAlbums.length > 0 ? initialAlbums : (ALBUMS_FALLBACK as any[]));
+    const [loading, setLoading] = useState(!initialAlbums || initialAlbums.length === 0);
     const [fetchError, setFetchError] = useState(false);
 
     useEffect(() => {
         async function load() {
             try {
-                setLoading(true);
                 const data = await fetchAlbums();
                 if (data && data.length > 0) {
                     setAlbums(data);
@@ -121,13 +121,15 @@ export default function AlbumsReveal({ isActive = true }: AlbumsRevealProps) {
                 setFetchError(false);
             } catch (err) {
                 console.error("Failed to load albums for carousel", err);
-                setFetchError(true);
+                if (!initialAlbums || initialAlbums.length === 0) {
+                    setFetchError(true);
+                }
             } finally {
                 setLoading(false);
             }
         }
         load();
-    }, []);
+    }, [initialAlbums]);
 
     useEffect(() => {
         if (!isActive || loading || fetchError) {

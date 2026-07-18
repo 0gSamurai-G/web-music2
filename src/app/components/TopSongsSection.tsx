@@ -353,19 +353,46 @@ export default function TopSongsSection({ isActive = true }: TopSongsSectionProp
     async function load() {
       try {
         setLoading(true);
-        const res = await fetch(`${API_BASE_URL}/api/albums/void-frequencies`);
-        if (!res.ok) throw new Error("Failed to fetch top tracks");
-        const data = await res.json();
-        if (data && data.songs && data.songs.length > 0) {
-          const mapped: Song[] = data.songs.slice(0, 10).map((song: any) => ({
+        let albumData = null;
+
+        // 1. Try exact slug match for 'void-frequencies'
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/albums/void-frequencies`, { cache: 'no-store' });
+          if (res.ok) {
+            albumData = await res.json();
+          }
+        } catch (e) {
+          console.log("Direct 'void-frequencies' lookup failed, trying fallback...", e);
+        }
+
+        // 2. Fallback to first album by position
+        if (!albumData) {
+          try {
+            const res = await fetch(`${API_BASE_URL}/api/albums`, { cache: 'no-store' });
+            if (res.ok) {
+              const allAlbums = await res.json();
+              if (allAlbums && allAlbums.length > 0) {
+                albumData = allAlbums[0];
+              }
+            }
+          } catch (e) {
+            console.log("Fallback all-albums fetch failed:", e);
+          }
+        }
+
+        if (albumData && albumData.songs && albumData.songs.length > 0) {
+          const sortedSongs = [...albumData.songs].sort((a, b) => a.track_number - b.track_number);
+          const mapped: Song[] = sortedSongs.slice(0, 10).map((song: any) => ({
             id: song.id,
             title: song.title,
             artist: 'VoidFrequencies',
-            album: 'Void Frequencies',
+            album: albumData.title,
             duration: song.duration
           }));
           setSongs(mapped);
           setFetchError(false);
+        } else {
+          setFetchError(true);
         }
       } catch (err) {
         console.error("Failed to load Top Songs dynamically:", err);
