@@ -25,6 +25,7 @@ export default function TwinkleStarsCanvas({ isActive }: TwinkleStarsCanvasProps
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const starsRef = useRef<TwinkleStar[]>([]);
   const animFrameRef = useRef<number>(0);
+  const lastTimeRef = useRef<number>(0);
   const widthRef = useRef<number>(0);
   const heightRef = useRef<number>(0);
 
@@ -37,7 +38,8 @@ export default function TwinkleStarsCanvas({ isActive }: TwinkleStarsCanvasProps
     const colors = ['#e8eaff', '#a8b4f8', '#ffffff', '#c8d0ff', '#d0d8ff', '#b8c4f0'];
 
     const createStars = () => {
-      const count = 135;
+      const isTouch = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+      const count = isTouch ? 40 : 135;
       starsRef.current = Array.from({ length: count }, () => ({
         x: Math.random() * widthRef.current,
         y: Math.random() * heightRef.current,
@@ -50,16 +52,30 @@ export default function TwinkleStarsCanvas({ isActive }: TwinkleStarsCanvasProps
     };
 
     const resize = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
       widthRef.current = window.innerWidth;
       heightRef.current = window.innerHeight;
-      canvas.width = widthRef.current;
-      canvas.height = heightRef.current;
+      canvas.width = widthRef.current * dpr;
+      canvas.height = heightRef.current * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       createStars();
     };
     resize();
     window.addEventListener('resize', resize);
 
     const draw = (timestamp: number) => {
+      if (document.visibilityState === 'hidden') {
+        animFrameRef.current = requestAnimationFrame(draw);
+        return;
+      }
+
+      const elapsed = timestamp - lastTimeRef.current;
+      if (elapsed < 33.3) {
+        animFrameRef.current = requestAnimationFrame(draw);
+        return;
+      }
+      lastTimeRef.current = timestamp - (elapsed % 33.3);
+
       if (!isActive) {
         animFrameRef.current = requestAnimationFrame(draw);
         return;

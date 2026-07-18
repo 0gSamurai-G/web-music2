@@ -43,10 +43,12 @@ export default function StarfieldCanvas({ opacity }: StarfieldCanvasProps) {
     if (!ctx) return;
 
     const resize = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
       widthRef.current = window.innerWidth;
       heightRef.current = window.innerHeight;
-      canvas.width = widthRef.current;
-      canvas.height = heightRef.current;
+      canvas.width = widthRef.current * dpr;
+      canvas.height = heightRef.current * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
     resize();
     window.addEventListener('resize', resize);
@@ -54,7 +56,9 @@ export default function StarfieldCanvas({ opacity }: StarfieldCanvasProps) {
     const colors = ['#e8eaff', '#a8b4f8', '#ffffff', '#c8d0ff'];
 
     const initializeStars = () => {
-      starsRef.current = Array.from({ length: 350 }, () => {
+      const isTouch = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+      const count = isTouch ? 50 : 350;
+      starsRef.current = Array.from({ length: count }, () => {
         const x = Math.random() * widthRef.current;
         const y = Math.random() * heightRef.current;
         return {
@@ -86,16 +90,20 @@ export default function StarfieldCanvas({ opacity }: StarfieldCanvasProps) {
     window.addEventListener('mouseleave', handleMouseLeave, { passive: true });
 
     const draw = (timestamp: number) => {
-      const delta = timestamp - lastTimeRef.current;
-      lastTimeRef.current = timestamp;
-
-      const diff = targetOpacityRef.current - currentOpacityRef.current;
-      currentOpacityRef.current += diff * 0.03;
-
-      if (delta < 16) {
+      if (document.visibilityState === 'hidden') {
         animFrameRef.current = requestAnimationFrame(draw);
         return;
       }
+
+      const elapsed = timestamp - lastTimeRef.current;
+      if (elapsed < 33.3) {
+        animFrameRef.current = requestAnimationFrame(draw);
+        return;
+      }
+      lastTimeRef.current = timestamp - (elapsed % 33.3);
+
+      const diff = targetOpacityRef.current - currentOpacityRef.current;
+      currentOpacityRef.current += diff * 0.03;
 
       ctx.clearRect(0, 0, widthRef.current, heightRef.current);
 

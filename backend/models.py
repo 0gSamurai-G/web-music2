@@ -11,7 +11,7 @@ class Album(Base):
     cover = Column(String, nullable=False) # cover img relative path
     description = Column(String, nullable=False)
     genre_tags = Column(String, nullable=False, default="") # comma-separated list like "Ambient,Space"
-    position = Column(Integer, nullable=False, default=0)
+    position = Column(Integer, nullable=False, default=0, index=True)
 
     # Relationship to Songs
     songs = relationship("Song", back_populates="album", cascade="all, delete-orphan", order_by="Song.track_number")
@@ -25,8 +25,8 @@ class Song(Base):
     seconds = Column(Integer, nullable=False) # e.g. 222
     lyrics = Column(Text, nullable=True) # Multi-line text lyrics or NULL
     audio_path = Column(String, nullable=True) # relative path to actual uploaded MP3 or NULL
-    track_number = Column(Integer, nullable=False, default=1)
-    album_id = Column(String, ForeignKey("albums.id", ondelete="CASCADE"), nullable=False)
+    track_number = Column(Integer, nullable=False, default=1, index=True)
+    album_id = Column(String, ForeignKey("albums.id", ondelete="CASCADE"), nullable=False, index=True)
 
     # Relationship to Album
     album = relationship("Album", back_populates="songs")
@@ -51,4 +51,4 @@ class ScrollytellingChapter(Base):
     accent_color = Column(String, nullable=False, default="#a8b4f8")
     image_side = Column(String, nullable=False, default="left")
     show_divider = Column(Integer, nullable=False, default=1) # 1 for True, 0 for False
-    position = Column(Integer, nullable=False, default=1)
+    position = Column(Integer, nullable=False, default=1, index=True)

@@ -3,8 +3,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
+from starlette.responses import Response
 
 from api import router as api_router, MEDIA_DIR
+
+class CacheControlledStaticFiles(StaticFiles):
+    def file_response(self, *args, **kwargs) -> Response:
+        response = super().file_response(*args, **kwargs)
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        return response
 
 app = FastAPI(title="VoidFrequencies API", version="1.0.0")
 
@@ -33,7 +40,7 @@ app.add_middleware(
 app.include_router(api_router, prefix="/api")
 
 # Serve media files locally
-app.mount("/api/media", StaticFiles(directory=MEDIA_DIR), name="media")
+app.mount("/api/media", CacheControlledStaticFiles(directory=MEDIA_DIR), name="media")
 
 @app.get("/")
 def read_root():

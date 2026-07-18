@@ -23,6 +23,11 @@ export default function CustomCursor() {
         };
 
         const lerp = () => {
+            if (document.visibilityState === 'hidden') {
+                rafRef.current = requestAnimationFrame(lerp);
+                return;
+            }
+
             ringPosRef.current.x += (posRef.current.x - ringPosRef.current.x) * 0.12;
             ringPosRef.current.y += (posRef.current.y - ringPosRef.current.y) * 0.12;
 
