@@ -1,9 +1,9 @@
 import React from 'react';
 import HomePageClient from './components/HomePageClient';
-import { fetchChapters } from '@/lib/api';
+import { fetchChapters, Chapter } from '@/lib/api';
 
 export default async function HomePage() {
-  let chapters = [];
+  let chapters: Chapter[] = [];
   try {
     chapters = await fetchChapters();
   } catch (err) {

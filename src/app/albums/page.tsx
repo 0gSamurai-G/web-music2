@@ -1,9 +1,9 @@
 import React from 'react';
 import AlbumsPageClient from '../components/AlbumsPageClient';
-import { fetchAlbums, fetchSettings } from '@/lib/api';
+import { fetchAlbums, fetchSettings, FrontendAlbum } from '@/lib/api';
 
 export default async function AlbumsPage() {
-  let albums = [];
+  let albums: FrontendAlbum[] = [];
   let yearsActive = '3';
   let streams = '∞';
 

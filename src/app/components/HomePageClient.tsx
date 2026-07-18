@@ -11,76 +11,87 @@ import CosmicBackground from './CosmicBackground';
 import TwinkleStarsCanvas from './TwinkleStarsCanvas';
 import WarpStarsCanvas from './WarpStarsCanvas';
 import ChapterIntro from './ChapterIntro';
-import ChapterFreeFall from './ChapterFreeFall';
-import ChapterSink from './ChapterSink';
-import ChapterRise from './ChapterRise';
-import ChapterTriumph from './ChapterTriumph';
+import DynamicChapter from './DynamicChapter';
 import AlbumsReveal from './AlbumsReveal';
 import TopSongsSection from './TopSongsSection';
 import SiteFooter from '@/components/Footer';
 import { Chapter as ApiChapter } from '@/lib/api';
 import AppLoader from '@/components/ui/AppLoader';
 
-const CHAPTERS = ['intro', 'freefall', 'sink', 'rise', 'triumph', 'albums', 'topsongs', 'footer'] as const;
-type Chapter = (typeof CHAPTERS)[number];
+/**
+ * Static "bookend" sections that always appear before / after the
+ * dynamic API-driven chapters.
+ *
+ * index 0 → intro hero
+ * index 1…N → dynamic chapters (sorted by `position` from the backend)
+ * index N+1 → albums reveal
+ * index N+2 → top songs
+ * index N+3 → footer
+ */
+type StaticChapter = 'intro' | 'albums' | 'topsongs' | 'footer';
+type ActiveSection = StaticChapter | `chapter-${number}`;
 
 interface HomePageClientProps {
   initialChapters: ApiChapter[];
 }
 
+/** Map chapter index → star / refraction opacity for cinematic transitions */
+function getChapterVisuals(index: number, total: number): { starOpacity: number; refractionOpacity: number } {
+  const progress = index / Math.max(total - 1, 1);
+  if (index === 0) return { starOpacity: 1, refractionOpacity: 0 };
+  if (progress < 0.25) return { starOpacity: 1, refractionOpacity: 0 };
+  if (progress < 0.5) return { starOpacity: 0.25, refractionOpacity: 0.08 };
+  if (progress < 0.75) return { starOpacity: 0.9, refractionOpacity: 0 };
+  return { starOpacity: 0.75, refractionOpacity: 0 };
+}
+
 export default function HomePageClient({ initialChapters }: HomePageClientProps) {
-  const [activeChapter, setActiveChapter] = useState<Chapter>('intro');
+  // Sort once by position (ascending), so admin reorder is reflected immediately
+  const sortedChapters = [...initialChapters].sort((a, b) => a.position - b.position);
+
+  const [activeSection, setActiveSection] = useState<ActiveSection>('intro');
   const [navScrolled, setNavScrolled] = useState(false);
-  const [starOpacity, setStarOpacity] = useState(0);
+  const [starOpacity, setStarOpacity] = useState(1);
   const [refractionOpacity, setRefractionOpacity] = useState(0);
   const [surfacePulse, setSurfacePulse] = useState(false);
   const [isHeroVisible, setIsHeroVisible] = useState(true);
   const snapContainerRef = useRef<HTMLDivElement>(null);
-  const chapterRefs = useRef<(HTMLElement | null)[]>([]);
+  // We hold refs to ALL sections dynamically
+  const sectionRefs = useRef<(HTMLElement | null)[]>([]);
   const heroSectionRef = useRef<HTMLElement>(null);
-  const [chapters] = useState<ApiChapter[]>(initialChapters);
-  const [isInitialLoading, setIsInitialLoading] = useState(false); // No client hydration gap needed because chapters are pre-fetched on server!
 
-  const handleChapterChange = useCallback((chapter: Chapter) => {
-    setActiveChapter(chapter);
+  // Total section count: intro + dynamic chapters + albums + topsongs + footer
+  const totalSections = 1 + sortedChapters.length + 3;
 
-    switch (chapter) {
-      case 'intro':
+  const handleSectionChange = useCallback(
+    (sectionId: ActiveSection, sectionIndex: number) => {
+      setActiveSection(sectionId);
+
+      // Intro
+      if (sectionId === 'intro') {
         setStarOpacity(1);
         setRefractionOpacity(0);
-        break;
-      case 'freefall':
-        setStarOpacity(1);
-        setRefractionOpacity(0);
-        break;
-      case 'sink':
-        setStarOpacity(0.25);
-        setRefractionOpacity(0.08);
-        break;
-      case 'rise':
-        setStarOpacity(0.9);
-        setRefractionOpacity(0);
+        return;
+      }
+      // Bookends
+      if (sectionId === 'albums') { setStarOpacity(0.6); setRefractionOpacity(0); return; }
+      if (sectionId === 'topsongs') { setStarOpacity(0.8); setRefractionOpacity(0); return; }
+      if (sectionId === 'footer') { setStarOpacity(0.5); setRefractionOpacity(0); return; }
+
+      // Dynamic chapters — cinematically progress through the scroll
+      const chapterIdx = sectionIndex - 1; // 0-based among chapters
+      const { starOpacity: so, refractionOpacity: ro } = getChapterVisuals(chapterIdx, sortedChapters.length);
+      setStarOpacity(so);
+      setRefractionOpacity(ro);
+
+      // Surface "pulse" effect on the chapter after the sink-style one
+      if (chapterIdx === 2) {
         setSurfacePulse(true);
         setTimeout(() => setSurfacePulse(false), 400);
-        break;
-      case 'triumph':
-        setStarOpacity(0.75);
-        setRefractionOpacity(0);
-        break;
-      case 'albums':
-        setStarOpacity(0.6);
-        setRefractionOpacity(0);
-        break;
-      case 'topsongs':
-        setStarOpacity(0.8);
-        setRefractionOpacity(0);
-        break;
-      case 'footer':
-        setStarOpacity(0.5);
-        setRefractionOpacity(0);
-        break;
-    }
-  }, []);
+      }
+    },
+    [sortedChapters.length]
+  );
 
   useEffect(() => {
     const container = snapContainerRef.current;
@@ -89,11 +100,9 @@ export default function HomePageClient({ initialChapters }: HomePageClientProps)
     const handleScroll = () => {
       const scrollTop = container.scrollTop;
       setNavScrolled(scrollTop > 50);
-
       const heroSection = heroSectionRef.current;
       if (heroSection) {
-        const heroHeight = heroSection.offsetHeight;
-        setIsHeroVisible(scrollTop < heroHeight);
+        setIsHeroVisible(scrollTop < heroSection.offsetHeight);
       }
     };
 
@@ -103,15 +112,22 @@ export default function HomePageClient({ initialChapters }: HomePageClientProps)
 
   useEffect(() => {
     const observers: IntersectionObserver[] = [];
+    const sectionIds: ActiveSection[] = [
+      'intro',
+      ...sortedChapters.map((_, i) => `chapter-${i}` as ActiveSection),
+      'albums',
+      'topsongs',
+      'footer',
+    ];
 
-    chapterRefs.current.forEach((el, i) => {
+    sectionRefs.current.forEach((el, i) => {
       if (!el) return;
-      const chapter = CHAPTERS[i];
+      const sectionId = sectionIds[i];
       const observer = new IntersectionObserver(
         (entries) => {
           entries.forEach((entry) => {
             if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
-              handleChapterChange(chapter);
+              handleSectionChange(sectionId, i);
             }
           });
         },
@@ -125,14 +141,15 @@ export default function HomePageClient({ initialChapters }: HomePageClientProps)
     });
 
     return () => observers.forEach((o) => o.disconnect());
-  }, [handleChapterChange]);
+  }, [handleSectionChange, sortedChapters]);
 
-  const getChapterData = (id: string) => chapters.find(c => c.id === id);
+  const isChapterActive = (index: number) => activeSection === `chapter-${index}`;
 
   return (
     <div className="relative bg-void-black min-h-screen">
-      <AppLoader fadeOut={!isInitialLoading} />
+      <AppLoader fadeOut={true} />
 
+      {/* ── Navigation ── */}
       <nav
         className="fixed top-0 left-0 right-0 z-50 flex justify-between items-center px-6 md:px-12 py-5 nav-reveal transition-all duration-500"
         style={{
@@ -151,7 +168,7 @@ export default function HomePageClient({ initialChapters }: HomePageClientProps)
           <Link
             href="/"
             className={`font-display text-xs uppercase tracking-widest transition-colors ${
-              activeChapter !== 'intro'
+              activeSection !== 'intro'
                 ? 'text-ice-blue border-b border-ice-blue'
                 : 'text-star-white opacity-70 hover:opacity-100'
             }`}
@@ -175,14 +192,17 @@ export default function HomePageClient({ initialChapters }: HomePageClientProps)
         <div className="surface-pulse" style={{ opacity: 0.15, transition: 'opacity 0.3s ease' }} />
       )}
 
+      {/* ── Scroll snap container ── */}
       <div
         ref={snapContainerRef}
         className="scroll-snap-container relative z-10"
         style={{ height: '100vh', overflowY: 'scroll', scrollSnapType: 'y mandatory' }}
       >
+
+        {/* ── Section 0: Intro hero ── */}
         <section
           ref={(el) => {
-            chapterRefs.current[0] = el;
+            sectionRefs.current[0] = el;
             heroSectionRef.current = el;
           }}
           className="scroll-snap-section relative"
@@ -191,77 +211,57 @@ export default function HomePageClient({ initialChapters }: HomePageClientProps)
           <CosmicBackground isVisible={isHeroVisible} />
           <TwinkleStarsCanvas isActive={isHeroVisible} />
           <WarpStarsCanvas isActive={isHeroVisible} />
-
           <ChapterIntro
-            isActive={activeChapter === 'intro'}
-            onComplete={() => handleChapterChange('freefall')}
+            isActive={activeSection === 'intro'}
+            onComplete={() => handleSectionChange('chapter-0', 1)}
             isHeroVisible={isHeroVisible}
           />
         </section>
 
+        {/* ── Sections 1…N: Dynamic chapters (sorted by admin position) ── */}
+        {sortedChapters.map((chapter, i) => (
+          <section
+            key={chapter.id}
+            ref={(el) => {
+              sectionRefs.current[1 + i] = el;
+            }}
+            className="scroll-snap-section"
+            style={{ scrollSnapAlign: 'start', height: '100vh' }}
+          >
+            <DynamicChapter
+              isActive={isChapterActive(i)}
+              chapter={chapter}
+              variant={i % 4}
+            />
+          </section>
+        ))}
+
+        {/* ── Section N+1: Albums reveal ── */}
         <section
           ref={(el) => {
-            chapterRefs.current[1] = el;
+            sectionRefs.current[1 + sortedChapters.length] = el;
           }}
           className="scroll-snap-section"
           style={{ scrollSnapAlign: 'start', height: '100vh' }}
         >
-          <ChapterFreeFall isActive={activeChapter === 'freefall'} chapter={getChapterData('chapter-1')} />
+          <AlbumsReveal isActive={activeSection === 'albums'} />
         </section>
 
+        {/* ── Section N+2: Top songs ── */}
         <section
           ref={(el) => {
-            chapterRefs.current[2] = el;
+            sectionRefs.current[2 + sortedChapters.length] = el;
           }}
           className="scroll-snap-section"
           style={{ scrollSnapAlign: 'start', height: '100vh' }}
         >
-          <ChapterSink isActive={activeChapter === 'sink'} chapter={getChapterData('chapter-2')} />
+          <TopSongsSection isActive={activeSection === 'topsongs'} />
         </section>
 
+        {/* ── Section N+3: Footer ── */}
         <section
           ref={(el) => {
-            chapterRefs.current[3] = el;
-          }}
-          className="scroll-snap-section"
-          style={{ scrollSnapAlign: 'start', height: '100vh' }}
-        >
-          <ChapterRise isActive={activeChapter === 'sink' ? false : activeChapter === 'rise'} chapter={getChapterData('chapter-3')} />
-        </section>
-
-        <section
-          ref={(el) => {
-            chapterRefs.current[4] = el;
-          }}
-          className="scroll-snap-section"
-          style={{ scrollSnapAlign: 'start', height: '100vh' }}
-        >
-          <ChapterTriumph isActive={activeChapter === 'triumph'} chapter={getChapterData('chapter-4')} />
-        </section>
-
-        <section
-          ref={(el) => {
-            chapterRefs.current[5] = el;
-          }}
-          className="scroll-snap-section"
-          style={{ scrollSnapAlign: 'start', height: '100vh' }}
-        >
-          <AlbumsReveal isActive={activeChapter === 'albums'} />
-        </section>
-
-        <section
-          ref={(el) => {
-            chapterRefs.current[6] = el;
-          }}
-          className="scroll-snap-section"
-          style={{ scrollSnapAlign: 'start', height: '100vh' }}
-        >
-          <TopSongsSection isActive={activeChapter === 'topsongs'} />
-        </section>
-
-        <section
-          ref={(el) => {
-            chapterRefs.current[7] = el;
+            sectionRefs.current[3 + sortedChapters.length] = el;
           }}
           className="scroll-snap-section"
           style={{ scrollSnapAlign: 'start', minHeight: '100vh' }}
