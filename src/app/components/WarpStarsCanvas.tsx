@@ -42,12 +42,10 @@ export default function WarpStarsCanvas({ isActive }: WarpStarsCanvasProps) {
     if (!ctx) return;
 
     const resize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
       widthRef.current = window.innerWidth;
       heightRef.current = window.innerHeight;
-      canvas.width = widthRef.current * dpr;
-      canvas.height = heightRef.current * dpr;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      canvas.width = widthRef.current;
+      canvas.height = heightRef.current;
 
       // Origin: right-center of screen
       originXRef.current = widthRef.current * 0.85;
@@ -84,21 +82,11 @@ export default function WarpStarsCanvas({ isActive }: WarpStarsCanvasProps) {
       };
     };
 
-    const isTouch = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
-    starsRef.current = isTouch ? [] : Array.from({ length: 150 }, createStar);
+    starsRef.current = Array.from({ length: 400 }, createStar);
 
     const draw = (timestamp: number) => {
-      if (document.visibilityState === 'hidden') {
-        animFrameRef.current = requestAnimationFrame(draw);
-        return;
-      }
-
-      const elapsed = timestamp - lastTimeRef.current;
-      if (elapsed < 33.3) {
-        animFrameRef.current = requestAnimationFrame(draw);
-        return;
-      }
-      lastTimeRef.current = timestamp - (elapsed % 33.3);
+      const delta = timestamp - lastTimeRef.current;
+      lastTimeRef.current = timestamp;
 
       if (!isActive) {
         animFrameRef.current = requestAnimationFrame(draw);
@@ -109,7 +97,7 @@ export default function WarpStarsCanvas({ isActive }: WarpStarsCanvasProps) {
       ctx.clearRect(0, 0, widthRef.current, heightRef.current);
 
       starsRef.current.forEach((star) => {
-        star.distance += star.speed * (elapsed / 16.67);
+        star.distance += star.speed * (delta / 16.67);
 
         const progress = Math.max(0, Math.min(star.distance / (widthRef.current * 1.8), 1));
 

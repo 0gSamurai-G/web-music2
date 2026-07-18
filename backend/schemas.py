@@ -1,20 +1,5 @@
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 from typing import List, Optional
-import os
-from pathlib import Path
-
-MEDIA_DIR = Path(__file__).resolve().parent / "media"
-
-def add_cache_buster(relative_path: Optional[str]) -> Optional[str]:
-    if not relative_path:
-        return relative_path
-    clean_path = relative_path.split("?")[0]
-    sub_path = clean_path.replace("media/", "", 1) if clean_path.startswith("media/") else clean_path
-    full_path = MEDIA_DIR / sub_path
-    if full_path.exists() and full_path.is_file():
-        mtime = int(full_path.stat().st_mtime)
-        return f"{clean_path}?v={mtime}"
-    return relative_path
 
 class SiteSettingBase(BaseModel):
     key: str
@@ -53,12 +38,6 @@ class SongResponse(SongBase):
     class Config:
         from_attributes = True
 
-    @model_validator(mode='after')
-    def append_cache_buster(self):
-        if self.audio_path:
-            self.audio_path = add_cache_buster(self.audio_path)
-        return self
-
 class AlbumBase(BaseModel):
     id: str # Slug as ID
     title: str
@@ -84,12 +63,6 @@ class AlbumResponse(AlbumBase):
 
     class Config:
         from_attributes = True
-
-    @model_validator(mode='after')
-    def append_cache_buster(self):
-        if self.cover:
-            self.cover = add_cache_buster(self.cover)
-        return self
 
 class ScrollytellingChapterBase(BaseModel):
     id: str
@@ -124,9 +97,3 @@ class ScrollytellingChapterUpdate(BaseModel):
 class ScrollytellingChapterResponse(ScrollytellingChapterBase):
     class Config:
         from_attributes = True
-
-    @model_validator(mode='after')
-    def append_cache_buster(self):
-        if self.image:
-            self.image = add_cache_buster(self.image)
-        return self

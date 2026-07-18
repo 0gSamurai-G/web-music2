@@ -55,13 +55,8 @@ export default function InteractiveStarfield({ opacity = 1 }: InteractiveStarfie
     const colors = ['#e8eaff', '#a8b4f8', '#ffffff', '#c8d0ff', '#b8c4f0', '#d0d8ff', '#9aa8f0'];
 
     const createStars = () => {
-      const isTouch = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
-      if (isTouch) {
-        starsRef.current = [];
-        return;
-      }
       const area = widthRef.current * heightRef.current;
-      const density = Math.min(Math.max(Math.round(area / 8000), 100), 250);
+      const density = Math.min(Math.max(Math.round(area / 2000), 400), 1000);
 
       starsRef.current = Array.from({ length: density }, () => {
         const x = Math.random() * widthRef.current;
@@ -95,32 +90,26 @@ export default function InteractiveStarfield({ opacity = 1 }: InteractiveStarfie
     };
 
     const resize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
       widthRef.current = window.innerWidth;
       heightRef.current = window.innerHeight;
-      canvas.width = widthRef.current * dpr;
-      canvas.height = heightRef.current * dpr;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      canvas.width = widthRef.current;
+      canvas.height = heightRef.current;
       createStars();
     };
     resize();
     window.addEventListener('resize', resize);
 
     const draw = (timestamp: number) => {
-      if (document.visibilityState === 'hidden') {
-        animFrameRef.current = requestAnimationFrame(draw);
-        return;
-      }
-
-      const elapsed = timestamp - lastTimeRef.current;
-      if (elapsed < 33.3) {
-        animFrameRef.current = requestAnimationFrame(draw);
-        return;
-      }
-      lastTimeRef.current = timestamp - (elapsed % 33.3);
+      const delta = timestamp - lastTimeRef.current;
+      lastTimeRef.current = timestamp;
 
       const diff = targetOpacityRef.current - currentOpacityRef.current;
       currentOpacityRef.current += diff * 0.03;
+
+      if (delta < 16) {
+        animFrameRef.current = requestAnimationFrame(draw);
+        return;
+      }
 
       ctx.clearRect(0, 0, widthRef.current, heightRef.current);
       // Solid near-black background

@@ -41,11 +41,7 @@ export default function HomePageClient({ initialChapters }: HomePageClientProps)
   const [chapters] = useState<ApiChapter[]>(initialChapters);
   const [isInitialLoading, setIsInitialLoading] = useState(false); // No client hydration gap needed because chapters are pre-fetched on server!
 
-  const activeChapterRef = useRef<Chapter>('intro');
-
   const handleChapterChange = useCallback((chapter: Chapter) => {
-    if (activeChapterRef.current === chapter) return;
-    activeChapterRef.current = chapter;
     setActiveChapter(chapter);
 
     switch (chapter) {
@@ -90,30 +86,19 @@ export default function HomePageClient({ initialChapters }: HomePageClientProps)
     const container = snapContainerRef.current;
     if (!container) return;
 
-    let scrollRaf: number | null = null;
-
     const handleScroll = () => {
-      if (scrollRaf !== null) return;
-      scrollRaf = window.requestAnimationFrame(() => {
-        scrollRaf = null;
-        const scrollTop = container.scrollTop;
-        setNavScrolled(scrollTop > 50);
+      const scrollTop = container.scrollTop;
+      setNavScrolled(scrollTop > 50);
 
-        const heroSection = heroSectionRef.current;
-        if (heroSection) {
-          const heroHeight = heroSection.offsetHeight;
-          setIsHeroVisible(scrollTop < heroHeight);
-        }
-      });
+      const heroSection = heroSectionRef.current;
+      if (heroSection) {
+        const heroHeight = heroSection.offsetHeight;
+        setIsHeroVisible(scrollTop < heroHeight);
+      }
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });
-    return () => {
-      container.removeEventListener('scroll', handleScroll);
-      if (scrollRaf !== null) {
-        window.cancelAnimationFrame(scrollRaf);
-      }
-    };
+    return () => container.removeEventListener('scroll', handleScroll);
   }, []);
 
   useEffect(() => {
